@@ -50,6 +50,9 @@ For example, with default values shown for optional settings:
 rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --proj-year "2025 2100"
 ```
 
+Note that the output directory is assumed to already exist.
+
+
 ### Expected Datapackage Structure
 
 Datapackages should be named with the following convention:
