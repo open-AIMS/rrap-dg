@@ -52,8 +52,14 @@ rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5
 
 ### Expected Datapackage Structure
 
+Datapackages should be named with the following convention:
+
+`[cluster name]_DHW_[YYYY-MM-DD]`
+
+An example for a hypothetical Moore dataset
+
 ```
-[cluster name]_DHW_[date of creation]
+Moore_DHW_2023-01-24
 │   datapackage.json
 │   README.md
 │
