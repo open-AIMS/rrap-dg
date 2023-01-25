@@ -16,6 +16,8 @@ Provides a single command-line interface to generate data sets for use with [ADR
 
 ## Installation
 
+TODO: Standalone executable.
+
 ### From PyPI (TODO)
 
 ```console
@@ -26,6 +28,31 @@ pip install rrap-dg
 
 ```console
 pip install git+https://github.com/open-AIMS/rrap_dg
+```
+
+### For Development
+
+
+Clone the repository, and navigate to the project folder.
+
+```bash
+git clone https://github.com/open-AIMS/rrap_dg
+cd rrap_dg
+```
+
+It is recommended that any development work be done in a separate environment.
+
+Here, [`mamba`](https://mamba.readthedocs.io/en/latest/) is used to create a local `conda` environment.
+
+```bash
+# Assume Windows platform
+mamba create -n rrap_dg --file win_env.yml
+```
+
+For ease of use, install `rrap-dg` as a local editable copy with `pip`.
+
+```bash
+pip install -e .
 ```
 
 ## Degree Heating Weeks
