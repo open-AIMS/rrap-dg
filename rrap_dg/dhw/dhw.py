@@ -20,8 +20,9 @@ from rich.progress import track
 
 from .dhw_funcs import (
     detrended_max_DHW,
-    get_DHW_trend,
-    get_closest_datapoint,
+    create_max_DHW,
+    get_closest_data,
+    fit_gauss,
     gauss,
     extract_DHW_pattern,
 )
@@ -71,7 +72,7 @@ def generate(
     hist_dhw_data = hist_dhw_data.rio.write_crs(crs_code)
 
     # Read spatial data and ensure CRS matches
-    cluster_site = gpd.read_file(pj(input_loc, "spatial", f"{cluster}.gpkg")).to_crs(
+    cluster_poly = gpd.read_file(pj(input_loc, "spatial", f"{cluster}.gpkg")).to_crs(
         crs_code
     )
 
@@ -82,25 +83,25 @@ def generate(
 
     # Extract target area from historic dataset
     with rio.open(pj(input_loc, "NOAA", "GBR_dhw_hist_noaa.nc")) as src:
-        cluster_site_dhw, out_transform = rio.mask.mask(
-            src, cluster_site.geometry, all_touched=True, filled=False, crop=True
+        cluster_hist_dhw, out_transform = rio.mask.mask(
+            src, cluster_poly.geometry, all_touched=True, filled=False, crop=True
         )
         # out_meta = src.meta
 
         # Manually apply scale factor
-        cluster_site_dhw *= scale_factor
+        cluster_hist_dhw *= scale_factor
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         # Ignore warnings that centroids are incorrect.
         # This is because WGS84 is not a projected CRS
         # but we assume everything lines up...
-        lon = cluster_site.centroid.x.to_numpy()
-        lat = cluster_site.centroid.y.to_numpy()
+        c_lon = cluster_poly.centroid.x.to_numpy()
+        c_lat = cluster_poly.centroid.y.to_numpy()
 
-    site_lonlat = np.array((lon, lat)).T
+    cluster_lonlats = np.array((c_lon, c_lat)).T
 
-    n_sites = cluster_site.shape[0]
+    n_sites = cluster_poly.shape[0]
     gen_year_tf = list(range(*gen_year))
     n_years = len(gen_year_tf)
 
@@ -110,11 +111,19 @@ def generate(
     gbr_reefs = pd.read_csv(pj(input_loc, "spatial", "list_gbr_reefs.csv"))
     gbr_reef_lon = gbr_reefs["LON"].to_numpy()
     gbr_reef_lat = gbr_reefs["LAT"].to_numpy()
+    # gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
 
     # Load yearly DHW data for cluster
     recom_files = glob(pj(input_loc, "RECOM", f"{cluster}*_*_dhw*.nc"))
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
+
+    # Regex rule to identify projection timeframe
+    cmp = re.compile(r"([0-9]{4})_([0-9]{4})")
+
+    # Flip dimension order for consistency with MATLAB
+    # (gets read in as: timesteps, sites, sims)
+    dhw = np.zeros((n_sims, cluster_lonlats.shape[0], n_years))
 
     # Create paired lon/lats, truncated to 4 decimal places so it matches
     # GBR reef data read in from a CSV.
@@ -128,25 +137,10 @@ def generate(
         )
     )
 
-    # Regex rule to identify projection timeframe
-    cmp = re.compile(r"([0-9]{4})_([0-9]{4})")
-
-    # Flip dimension order for consistency with MATLAB
-    # (gets read in as: timesteps, sites, sims)
-    dhw = np.zeros((n_sims, site_lonlat.shape[0], n_years))
-
-    # Projected data (MIROC5) does not have any spatial metadata
-    # so align datasets using the lat/longs
-    # Create lon/lat index for GBR data
-    # (used to align MIROC data)
-    lonlat_index = pd.MultiIndex.from_tuples(
-        zip(gbr_reef_lon, gbr_reef_lat), names=["lon", "lat"]
-    )
-
-    # Identify common locations
-    f_recom_lons, f_recom_lats = list(zip(*recom_lonlats))
-    common_lons = np.intersect1d(f_recom_lons, gbr_reef_lon)
-    common_lats = np.intersect1d(f_recom_lats, gbr_reef_lat)
+    # Identify common locations between RECOM and NOAA data
+    # common_lons = np.intersect1d(recom_lonlats[:, 0], gbr_reef_lon)
+    # common_lats = np.intersect1d(recom_lonlats[:, 1], gbr_reef_lat)
+    # common_lonlats = np.array(list(zip(common_lons, common_lats)))
 
     # for rcp_i in track(range(len(RCPs)), description="Generating members..."):
     for rcp_i in range(len(RCPs)):
@@ -159,19 +153,15 @@ def generate(
         proj_range = cmp.findall(proj_fn)[0]
         proj_range = (int(proj_range[0]), int(proj_range[1]) + 1)
 
-        # Get projection trend
-        MIROC_data = pd.read_csv(pj(input_loc, "MIROC5", proj_fn), header=None)
-        MIROC_data.index = lonlat_index
-
-        # Convert DataFrame to xarray dataset
-        MIROC_data = xr.Dataset.from_dataframe(MIROC_data)
-        MIROC_data["time"] = pd.to_datetime(list(range(*proj_range)), format="%Y")
+        # Prep projected data
+        # TODO: Get file location from datapackage
+        p_df = pd.read_csv(pj(input_loc, "MIROC5", proj_fn), header=None)
 
         # WARNING: Assumes order of locations align with NOAA dataset.
         #          Original approach attempted to match up locations
-        #          based on index positions. The line below uses the
-        #          lon/lat values
-        #              >>> MIROC_data.loc[(common_lons, common_lats), :]
+        #          based on index positions (with table/DataFrame).
+        #          The line below uses the lon/lat values
+        #              >>> projected_data.loc[(common_lons, common_lats), :]
         #
         #          Both identify a single cell (suspicious?).
         #
@@ -183,34 +173,69 @@ def generate(
         #          xarray instead (the approach used below).
         #          However, this identifies a larger area
         #          15x4, as opposed to the 1x1 area.
-
-        # Get the mean DHW timeseries within our cluster domain
-        mean_proj_dhw = MIROC_data.sel({"lon": common_lons, "lat": common_lats}).mean()
-        mean_proj_dhw = mean_proj_dhw.to_array().values
-
-        domain_hist_dhw = hist_dhw_data.sel(
-            {"longitude": common_lons, "latitude": common_lats}, method="nearest"
+        lonlat_index = pd.MultiIndex.from_tuples(
+            zip(gbr_reef_lon, gbr_reef_lat), name=("lon", "lat")
         )
-        mean_hist_dhw = domain_hist_dhw.mean(dim=("longitude", "latitude"))
+        p_df.index = lonlat_index
+        projected_data = p_df.to_xarray()
+        projected_data = projected_data.assign_coords(
+            {
+                "time": pd.to_datetime(list(range(*proj_range)), format="%Y"),
+            }
+        )
 
-        dens_prob, max_DHW_detrend = detrended_max_DHW(
-            mean_hist_dhw, mean_proj_dhw, gen_year_tf, proj_range
+        # TODO FIX:
+        # This produces a single time series of mean projected values for target cluster
+        # It should instead be the values across the spatial domain (not just the mean)
+        # Complication is that the lon/lats does not appear to line up, so it results in all nan values.
+        proj_domain_mean_dhw = (
+            projected_data.sel(lon=c_lon, lat=c_lat, method="nearest")
+            .to_array()
+            .max(dim=("lon", "lat"))
+            .values
+        )
+
+        # historic data constrained to area of interest
+        hist_domain_dhw = hist_dhw_data.sel(
+            {"longitude": c_lon, "latitude": c_lat}, method="nearest"
+        )
+        hist_domain_mean_dhw = hist_domain_dhw.mean(
+            dim=("longitude", "latitude")
+        ).squeeze()
+
+        dens_prob, domain_max_DHW_detrend = detrended_max_DHW(
+            hist_domain_mean_dhw, proj_domain_mean_dhw, gen_year_tf, proj_range
         )
 
         # Take a stochastically generated number within the yearly density
         # probabilities for each year and each simulation
         dhw_rand = np.zeros((n_sims, n_years))
         for yr in range(n_years):
-            dhw_rand[:, yr] = gev.rvs(*dens_prob[yr], size=(n_sims))
+            dhw_rand[:, yr] = gev.rvs(*dens_prob[yr], size=n_sims)
 
         dist97 = gev.ppf(0.97, *dens_prob[0])
 
+        # Get identified lon/lats
+        domain_lonlats = np.array(
+            list(
+                zip(
+                    hist_domain_dhw.longitude.values,
+                    hist_domain_dhw.latitude.values,
+                )
+            )
+        )
+
+        # Remove superfluous dimensions
+        hist_domain_dhw = hist_domain_dhw.to_array().squeeze()
+
         # Apply spatial adjustment
-        for site_i in range(site_lonlat.shape[0]):
+        for site_i in range(cluster_lonlats.shape[0]):
             # Find data closest to this site's coordinates
-            target_lonlat = (site_lonlat[site_i, 0], site_lonlat[site_i, 1])
-            closest_dhw = get_closest_datapoint(
-                target_lonlat, recom_lonlats, dhw_pattern
+            site_lonlats = (cluster_lonlats[site_i, 0], cluster_lonlats[site_i, 1])
+            closest_dhw = (
+                get_closest_data(site_lonlats, recom_lonlats, dhw_pattern)
+                .to_array()
+                .data.mean()
             )
 
             # Define the spatial adjustment as the difference from the mean within
@@ -218,11 +243,25 @@ def generate(
             spatialadj = closest_dhw - mean_dhw_pattern
 
             # Get the location specific trend lat/lon and MIROC5 trend
-            gauss_fit_site = get_DHW_trend(domain_hist_dhw, mean_proj_dhw, proj_range)
+            # Get time series for target area
+            hist_dhw_ts = get_closest_data(
+                site_lonlats, domain_lonlats, hist_domain_dhw
+            )
+
+            # Get projected DHWs for target area
+            # x = np.array(list(zip(common_lons, common_lats)))
+            # target_proj_dhw = get_closest_data(site_lonlats, domain_lonlats, proj_data.to_array())
+            # domain_hist_dhw.sel({'longitude': target_lonlat[0], 'latitude': target_lonlat[1]}, method='nearest')
+
+            # Get projected DHW trend
+            _, combined_timeframe, combined_dhw_data = create_max_DHW(
+                hist_dhw_ts, proj_domain_mean_dhw, proj_range
+            )
+            gauss_fit_site = fit_gauss(combined_timeframe, combined_dhw_data)
 
             # The first timeseries needs to be the exact MIROC5 projection
             # (MIROC5 data starts from 2021)
-            dhw[0, site_i, :] = mean_proj_dhw[
+            dhw[0, site_i, :] = proj_domain_mean_dhw[
                 gen_year_tf[0] - proj_range[0] : (gen_year_tf[-1] - proj_range[0] + 1)
             ]
 
@@ -239,7 +278,9 @@ def generate(
                     # the annual distribution, choose another number (the
                     # distribution function doesn't have an upper limit, so we cut
                     # it off to avoid very large unreasonable numbers)
-                    while dhw_rand[sim_i, yr_s] > np.max(max_DHW_detrend[:, yr_s]):
+                    while dhw_rand[sim_i, yr_s] > np.max(
+                        domain_max_DHW_detrend[:, yr_s]
+                    ):
                         dhw_rand[sim_i, yr_s] = gev.rvs(*dens_prob[yr_s])
 
                     # Adjust the spatial adjustment term according to relative
@@ -248,11 +289,10 @@ def generate(
                     # automatically get 100% of the spatial pattern.
                     dhw_r = dhw_rand[sim_i, yr_s] + gauss(yr_s, *gauss_fit_site)
                     if dhw_r >= dist97:
-                        spatial_adjyr = spatialadj
-                    else:
-                        spatial_adjyr = spatialadj * (dhw_r / dist97)
+                        dhw[sim_i, site_i, yr_s] = dhw_r + spatialadj
+                        continue
 
-                    dhw[sim_i, site_i, yr_s] = dhw_r + spatial_adjyr
+                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97))
 
             # Make values > 0 as negative DHW is not possible.
             dhw = np.maximum(dhw, 0.0)
@@ -309,10 +349,10 @@ def generate(
             dhw_ID.missing_value = 1.0e35
 
             # Put the variables' values
-            lon_ID[:] = lon
-            lat_ID[:] = lat
-            reef_ID[:] = cluster_site.loc[:, "reef_siteid"].to_numpy()
-            unique_ID[:] = cluster_site.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
+            lon_ID[:] = c_lon
+            lat_ID[:] = c_lat
+            reef_ID[:] = cluster_poly.loc[:, "reef_siteid"].to_numpy()
+            unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
 
 

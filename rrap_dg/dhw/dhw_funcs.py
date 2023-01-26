@@ -59,15 +59,25 @@ def inpoly(reef_lon, reef_lat, cluster_lonlats):
     return np.where(inds == 1)[0]
 
 
-def get_closest_datapoint(target_site: tuple, lonlats: np.array, dhw: xr.DataArray):
+def get_closest_data(
+    target_site: tuple, lonlats: np.array, dhw: xr.DataArray
+) -> xr.Dataset:
     """Get data closest to the target site."""
-
     # Use sum of absolute differences to determine closeness
+    box_shape = dhw.shape
+    if len(box_shape) > 2:
+        # ignore the time dimension
+        box_shape = dhw.shape[1:]
+
     ind = np.unravel_index(
-        np.argmin(np.abs(lonlats - target_site).sum(axis=1)), dhw.shape
+        np.argmin(np.abs(lonlats - target_site).sum(axis=1)), box_shape
     )
 
-    return float(dhw[*ind].data)
+    # Handle datasets with time dimension
+    if len(dhw.shape) > 2:
+        return dhw[:, *ind].to_dataset(name="CRS_DHW")
+
+    return dhw[*ind].to_dataset(name="CRS_DHW")
 
 
 def extract_DHW_pattern(recom_files: Sequence[str]):
@@ -125,7 +135,9 @@ def create_max_DHW(
         - combined max DHW across hist/projected time periods
     """
     # Find max historical DHW by grouping each unique year and getting the max
-    hist_max_DHW = hist_dhw["CRW_DHW"].groupby("time.year").max(dim=...).values
+    hist_max_DHW = (
+        hist_dhw.groupby("time.year").max(dim=...).to_array().values.squeeze()
+    )
 
     # Concatenate the data in a single array
     time_yr = np.unique(hist_dhw.time.dt.year.data)
@@ -133,39 +145,6 @@ def create_max_DHW(
     all_dhw_data = np.concatenate((hist_max_DHW, proj_dhw))
 
     return hist_max_DHW, total_timeframe, all_dhw_data
-
-
-def get_DHW_trend(
-    domain_hist_dhw: xr.Dataset,
-    proj_cluster_dhw: np.array,
-    proj_range: Sequence[int],
-):
-    """Find the closest available data for a given latitude and
-    longitude, then produces optimal parameters for a Gaussian fit over the
-    timeseries.
-
-    Parameters
-    ----------
-    domain_hist_dhw : historic DHW data for given domain
-    proj_cluster_dhw : projected DHWs (e.g., MIROC5)
-    proj_range : tuple[int, int], year range of MIROC data (end exclusive)
-    dhw_lonlat : tuple[np.array, np.array], longitude/latitude of DHW data domain
-    site_lonlat : tuple[np.array, np.array], longitude/latitude of the site considered
-
-    Returns
-    -------
-    gaussfitobj : Gaussian trend for the CRW and MIROC5 projection data (object)
-
-    By Veronique Lago, AIMS, June 2022
-    Updated by Chinenye Ani, AIMS, November 2022
-    """
-    _, combined_timeframe, combined_dhw_data = create_max_DHW(
-        domain_hist_dhw, proj_cluster_dhw, proj_range
-    )
-
-    popt = fit_gauss(combined_timeframe, combined_dhw_data)
-
-    return popt
 
 
 def detrended_max_DHW(
@@ -186,19 +165,17 @@ def detrended_max_DHW(
 
     Returns
     -------
-    tuple
+    tuple, dens_prob, max_DHW_detrend
         - Generalized Extreme Value probability
         - detrended maximum DHW
-    dens_prob, max_DHW_detrend
     """
     hist_max_DHW, dhw_timeframe, combined_dhw_data = create_max_DHW(
         mean_hist_dhw, mean_proj_dhw, proj_range
     )
 
-    # Detrend the DHW for the whole timeseries of available data (CRW and MIROC5)
-    # Fit an exponential curve
-    # fitting the data
     popt = fit_gauss(dhw_timeframe, combined_dhw_data)
+
+    # Detrend the DHW for the whole timeseries of available data (CRW and MIROC5)
     data_detrend = combined_dhw_data - gauss(dhw_timeframe, *popt)
 
     # Put all the historical data plus all years of MIROC5 up to each year
