@@ -27,7 +27,7 @@ pip install rrap-dg
 ### Dev version
 
 ```console
-pip install git+https://github.com/open-AIMS/rrap_dg
+pip install git+https://github.com/open-AIMS/rrap-dg
 ```
 
 ### For Development
