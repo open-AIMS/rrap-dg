@@ -46,7 +46,7 @@ Here, [`mamba`](https://mamba.readthedocs.io/en/latest/) is used to create a loc
 
 ```bash
 # Assume Windows platform
-mamba create -n rrap_dg --file win_env.yml
+mamba create -n rrap-dg --file win_env.yml
 ```
 
 For ease of use, install `rrap-dg` as a local editable copy with `pip`.
