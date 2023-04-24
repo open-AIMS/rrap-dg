@@ -74,7 +74,7 @@ rrapdg dhw generate [input data directory] [output directory] [optional settings
 For example, with default values shown for optional settings:
 
 ```console
-rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --proj-year "2025 2100"
+rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
 ```
 
 Note that the output directory is assumed to already exist.
