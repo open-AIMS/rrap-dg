@@ -39,7 +39,7 @@ def fit_gauss(x, y):
     """
     # Create an initial guess
     mu, sigma = norm.fit(y)
-    init_guess = np.array([1, mu, sigma])  # amplitude, mean, std
+    init_guess = (1, mu, sigma)  # amplitude, mean, std
 
     # Note: `curve_fit` does not work if `x` is passed in directly.
     popt, _ = curve_fit(gauss, range(0, len(x)), y, p0=init_guess)
