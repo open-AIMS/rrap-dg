@@ -36,7 +36,7 @@ pip install git+https://github.com/open-AIMS/rrap-dg
 Clone the repository, and navigate to the project folder.
 
 ```bash
-git clone https://github.com/open-AIMS/rrap_dg
+git clone https://github.com/open-AIMS/rrap-dg
 cd rrap_dg
 ```
 
