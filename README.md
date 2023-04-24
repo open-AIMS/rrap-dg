@@ -46,13 +46,17 @@ Here, [`mamba`](https://mamba.readthedocs.io/en/latest/) is used to create a loc
 
 ```bash
 # Assume Windows platform
-mamba create -n rrap-dg --file win_env.yml
+$ mamba create -n rrap-dg --file win_env.yml
+
+# Don't forget to activate the environment
+$ mamba activate rrap-dg
 ```
 
-For ease of use, install `rrap-dg` as a local editable copy with `pip`.
+For development purposes, you want to be able to make changes to the code as well, so
+install `rrap-dg` as a local editable copy with `pip`.
 
 ```bash
-pip install -e .
+(rrap-dg) $ pip install -e .
 ```
 
 ## Degree Heating Weeks
@@ -68,13 +72,13 @@ This work was ported to Python from the original MATLAB developed by Dr. Veroniq
 Usage:
 
 ```console
-rrapdg dhw generate [input data directory] [output directory] [optional settings...]
+(rrap-dg) $ rrapdg dhw generate [input data directory] [output directory] [optional settings...]
 ```
 
 For example, with default values shown for optional settings:
 
 ```console
-rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
+(rrap-dg) $ rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
 ```
 
 Note that the output directory is assumed to already exist.
