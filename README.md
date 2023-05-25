@@ -11,7 +11,7 @@ Provides a single command-line interface to generate data sets for use with [ADR
 **Table of Contents**
 
 - [Installation](#installation)
-- [Degree Heating Weeks](#DHW)
+- [Degree Heating Weeks](#degree-heating-weeks)
 - [License](#license)
 
 ## Installation
