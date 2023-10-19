@@ -116,6 +116,8 @@ Moore_DHW_2023-01-24
         Moore.gpkg
 ```
 
+This specific data package is available on the RRAP IS Data store:
+https://hdl.handle.net/102.100.100/481718
 
 ## Connectivity data
 
