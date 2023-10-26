@@ -59,9 +59,50 @@ install `rrap-dg` as a local editable copy with `pip`.
 (rrap-dg) $ pip install -e .
 ```
 
-## Degree Heating Weeks
 
-Generate Degree Heating Week projections using combinations of 
+## rrap-dg Datapackages
+
+The rrap-dg Datapackages are used as inputs by DHW and Cyclone Mortality generate functions.
+To generate DHW files, folders `MIROC5`, `NOAA`, `RECOM` and `spatial` are mandatory. To
+generate the Cyclone Mortality file, the folder `cyclone_mortality` is mandatory.
+
+The Datapackage should be named with the following convention:
+
+`[cluster name]_rrapdg_[YYYY-MM-DD]`
+
+An example for a hypothetical Moore dataset:
+
+```
+Moore_rrapdg_2023-01-24
+│   datapackage.json
+│   README.md
+│
+├───MIROC5
+│       GBR_maxDHW_MIROC5_rcp26_2021_2099.csv
+│       GBR_maxDHW_MIROC5_rcp45_2021_2099.csv
+│       GBR_maxDHW_MIROC5_rcp60_2021_2099.csv
+│       GBR_maxDHW_MIROC5_rcp85_2021_2099.csv
+│
+├───NOAA
+│       GBR_dhw_hist_noaa.nc
+│
+├───RECOM
+│       Moore_2015_585_dhw_exp.nc
+│       Moore_2016_586_dhw_exp.nc
+│       Moore_2017_599_dhw_exp.nc
+│
+└───spatial
+│       list_gbr_reefs.csv
+│       Moore.gpkg
+│
+└───cyclone_mortality
+│       fabricius2008.csv
+```
+
+
+## Degree Heating Weeks (DHW) projections
+
+Generate Degree Heating Week projections using combinations of
 
 - NOAA Coral Reef Watch (CRW version 3.1) satellite data
 - MIROC5 RCP projections (2021 - 2099)
@@ -83,37 +124,19 @@ For example, with default values shown for optional settings:
 
 Note that the output directory is assumed to already exist.
 
+## Cyclone Mortality projections
 
-### Expected Datapackage Structure
+Generate Cyclone Mortality projections using data from
 
-Datapackages should be named with the following convention:
+- Fabricius, Katharina E., et al. "Disturbance gradients on inshore and offshore coral reefs caused by a severe tropical cyclone." Limnology and Oceanography 53.2 (2008): 690-704.
+- RefMod Engine Datapackage
 
-`[cluster name]_DHW_[YYYY-MM-DD]`
+The mortality regression model ported from an R version written by Vanessa Haller.
 
-An example for a hypothetical Moore dataset
+Usage:
 
-```
-Moore_DHW_2023-01-24
-│   datapackage.json
-│   README.md
-│
-├───MIROC5
-│       GBR_maxDHW_MIROC5_rcp26_2021_2099.csv
-│       GBR_maxDHW_MIROC5_rcp45_2021_2099.csv
-│       GBR_maxDHW_MIROC5_rcp60_2021_2099.csv
-│       GBR_maxDHW_MIROC5_rcp85_2021_2099.csv
-│
-├───NOAA
-│       GBR_dhw_hist_noaa.nc
-│
-├───RECOM
-│       Moore_2015_585_dhw_exp.nc
-│       Moore_2016_586_dhw_exp.nc
-│       Moore_2017_599_dhw_exp.nc
-│
-└───spatial
-        list_gbr_reefs.csv
-        Moore.gpkg
+```console
+(rrap-dg) $ rrapdg cyclones generate [rrapdg datapackage path] [reefmod engine datapackage path] [output directory path] [optional settings...]
 ```
 
 This specific data package is available on the RRAP IS Data store:
