@@ -56,7 +56,7 @@ function branching_regression(df::DataFrame)::Function
 end
 
 """
-    function massive_regression(df::DataFrame)::Function
+    massive_regression(df::DataFrame)::Function
 
 Returns prediction fuction for massive corals.
 """
