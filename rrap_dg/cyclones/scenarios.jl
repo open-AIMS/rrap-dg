@@ -34,7 +34,7 @@ function cyclone_scenarios(datapackage_path::String)
     axlist = (
         Dim{:timesteps}(1:n_timesteps),
         Dim{:scenarios}(1:n_scenarios),
-        Dim{:locations}(string.(locations)),
+        Dim{:locations}(locations),
     )
 
     scenarios = YAXArray(axlist, zeros(n_timesteps, n_scenarios, n_locations))
