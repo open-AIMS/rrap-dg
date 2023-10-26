@@ -4,14 +4,14 @@ using DimensionalData
 using YAXArrays
 using Statistics
 
-# Last idx upper limit is 254 km/h (1 min max sustained speed) converted to m/s
-# Rows - lower and upper limits for each category (m/s); Cols - categories 1, 2, 3, 4 or 5
-windspeed_ranges = [[17, 24.5] [24.6, 32.5] [32.6, 44.2] [44.2, 55.3] [55.3, 70.5]]
-
-# This is used when converting cyclone categories into windspeed
-mean_windspeeds = mean(windspeed_ranges; dims=1)
-
 function cyclone_scenarios(datapackage_path::String)
+    # Rows - lower and upper limits for each category (m/s); Cols - categories 1, 2, 3, 4 or 5
+    # Last idx upper limit is 254 km/h (1 min max sustained speed) converted to m/s
+    windspeed_ranges = [[17, 24.5] [24.6, 32.5] [32.6, 44.2] [44.2, 55.3] [55.3, 70.5]]
+
+    # This is used when converting cyclone categories into windspeed
+    mean_windspeeds = mean(windspeed_ranges; dims=1)
+
     input_folder = joinpath(datapackage_path, "data_files", "cyc_csv")
     scen_files = readdir(input_folder)
 
