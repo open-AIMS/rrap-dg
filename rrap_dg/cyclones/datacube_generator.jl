@@ -19,7 +19,7 @@ function generate(
     scens_m = map(x -> x > 0.0 ? y_m(x) : 0.0, scens)
 
     # Coral Groups
-    cgroups = string.([:branch3, :branch8, :massive])
+    cgroups = (["branch3", "branch8", "massive"])
 
     # Generate datacube with estimate mortality for each timestep/scenario/location (reef)/ coral group
     cube = concatenatecubes([scens_b3, scens_b8, scens_m], Dim{:cgroups}(cgroups))
