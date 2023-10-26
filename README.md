@@ -99,6 +99,8 @@ Moore_rrapdg_2023-01-24
 │       fabricius2008.csv
 ```
 
+This specific data package is available on the RRAP IS Data store:
+https://hdl.handle.net/102.100.100/481718
 
 ## Degree Heating Weeks (DHW) projections
 
@@ -138,9 +140,6 @@ Usage:
 ```console
 (rrap-dg) $ rrapdg cyclones generate [rrapdg datapackage path] [reefmod engine datapackage path] [output directory path] [optional settings...]
 ```
-
-This specific data package is available on the RRAP IS Data store:
-https://hdl.handle.net/102.100.100/481718
 
 ## Connectivity data
 
