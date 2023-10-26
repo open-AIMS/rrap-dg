@@ -6,7 +6,7 @@ logistic(x) = log((x / (1 - x)) + 0.01)
 logit2prob(x) = (exp(x) - 0.01) / (1 + exp(x) - 0.01)
 
 """
-    cyclone_mortality(filepath::String)
+    cyclone_mortality(datapackage_path::String)
 
 DataFrames with windspeed and mortality data for corals (in this order):
 - Branching 3 (above depth 5)
