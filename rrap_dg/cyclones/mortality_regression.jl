@@ -41,7 +41,7 @@ end
 """
     branching_regression(df::DataFrame)::Function
 
-Returns prediction fuction for branching corals.
+Returns prediction function for branching corals.
 """
 function branching_regression(df::DataFrame)::Function
     # Apply logistic function
