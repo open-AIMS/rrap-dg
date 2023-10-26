@@ -58,7 +58,7 @@ end
 """
     massive_regression(df::DataFrame)::Function
 
-Returns prediction fuction for massive corals.
+Returns prediction function for massives.
 """
 function massive_regression(df::DataFrame)::Function
     # Adjust linear regressioin
