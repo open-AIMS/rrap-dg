@@ -15,7 +15,7 @@ function cyclone_scenarios(datapackage_path::String)
     input_folder = joinpath(datapackage_path, "data_files", "cyc_csv")
     scen_files = readdir(input_folder)
 
-    # This is only to determine number of timesteps, locations and location_labels
+    # This is only to determine number of timesteps and locations
     tmp_file = CSV.read(
         joinpath(input_folder, scen_files[1]),
         DataFrame;
@@ -41,12 +41,12 @@ function cyclone_scenarios(datapackage_path::String)
 
     # Each file is a scenario
     for (idx_s, file) in enumerate(scen_files)
-        scenario = scenarios[scenarios=At(idx_s)]
         filepath = joinpath(input_folder, file)
         df = CSV.read(filepath, DataFrame; stringtype=String, header=false, comment="#")
 
         category_scenarios = Matrix(df[:, 2:end])'
 
+        scenario = scenarios[scenarios=At(idx_s)]
         scenario .= map(x -> x > 0 ? mean_windspeeds[x] : x, category_scenarios)
     end
 
