@@ -60,13 +60,13 @@ install `rrap-dg` as a local editable copy with `pip`.
 ```
 
 
-## rrap-dg Datapackages
+## rrap-dg Data Packages
 
-The rrap-dg Datapackages are used as inputs by DHW and Cyclone Mortality generate functions.
-To generate DHW files, folders `MIROC5`, `NOAA`, `RECOM` and `spatial` are mandatory. To
-generate the Cyclone Mortality file, the folder `cyclone_mortality` is mandatory.
+The rrap-dg Data Packages are used as inputs by DHW and Cyclone Mortality data generators.
+To generate DHW data cubes, the folders `MIROC5`, `NOAA`, `RECOM` and `spatial` are required. To
+generate the cyclone mortalities, the folder `cyclone_mortality` is required.
 
-The Datapackage should be named with the following convention:
+The data package should be named with the following convention:
 
 `[cluster name]_rrapdg_[YYYY-MM-DD]`
 
