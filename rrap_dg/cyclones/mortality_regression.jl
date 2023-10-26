@@ -11,7 +11,7 @@ logit2prob(x) = (exp(x) - 0.01) / (1 + exp(x) - 0.01)
 DataFrames with windspeed and mortality data for corals (in this order):
 - Branching 3 (above depth 5)
 - Branching 3 (below depth 5)
-- Massive
+- Massives
 """
 function cyclone_mortality(datapackage_path::String)::Tuple{Function,Function,Function}
     # Read cyclone mortality csv file
