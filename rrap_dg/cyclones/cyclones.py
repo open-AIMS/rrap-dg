@@ -3,15 +3,15 @@ import juliacall
 
 jl = juliacall.newmodule("Cyclones")
 
-jl.seval('include("rrap_dg/cyclones/cyclones.jl")')
+jl.seval('include("rrap_dg/cyclones/datacube_generator.jl")')
 
 app = typer.Typer()
 
 @app.command(help="Generate Cyclone mortality datasets")
 def generate(
-    input_path: str,
-    gen_year: str = typer.Option("2025 2100"),
+    rrapdg_datapackage_path: str,
+    rme_datapackage_path: str,
+    output_path: str,
+    #gen_year: str = typer.Option("2025 2100"),
 ) -> None:
-    y_b3, y_b8, y_m = jl.cyclone_mortality(input_path)
-
-    print(y_b3(25))
+    jl.generate(rrapdg_datapackage_path, rme_datapackage_path, output_path)

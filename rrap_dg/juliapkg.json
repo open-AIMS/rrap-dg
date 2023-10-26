@@ -9,9 +9,25 @@
             "uuid": "a93c6f00-e57d-5684-b7b6-d8193f3e46c0",
             "version": "1.6.1"
         },
+        "DimensionalData": {
+            "uuid": "0703355e-b756-11e9-17c0-8b28908087d0",
+            "version": "0.25.5"
+        },
         "GLM": {
             "uuid": "38e38edf-8417-5370-95a0-9cbb8c7f171a",
             "version": "1.8.3"
+        },
+        "NetCDF": {
+            "uuid": "30363a11-5582-574a-97bb-aa9a979735b9",
+            "version": "0.11.7"
+        },
+        "Statistics": {
+            "uuid": "10745b16-79ce-11e8-11f9-7d13ad32a3b2",
+            "version": "1.9.0"
+        },
+        "YAXArrays": {
+            "uuid": "c21b50f5-aa40-41ea-b809-c0f5e47bfa5c",
+            "version": "0.5.2"
         }
     }
 }

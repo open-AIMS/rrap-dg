@@ -2,6 +2,9 @@ using DataFrames
 using CSV
 using GLM
 
+logistic(x) = log((x / (1 - x)) + 0.01)
+logit2prob(x) = (exp(x) - 0.01) / (1 + exp(x) - 0.01)
+
 """
     cyclone_mortality(filepath::String)
 
@@ -10,8 +13,9 @@ DataFrames with windspeed and mortality data for corals (in this order):
 - Branching 3 (below depth 5)
 - Massive
 """
-function cyclone_mortality(filepath::String)::Tuple{Function,Function,Function}
+function cyclone_mortality(datapackage_path::String)::Tuple{Function,Function,Function}
     # Read cyclone mortality csv file
+    filepath = joinpath(datapackage_path, "cyclone_mortality", "fabricius2008.csv")
     df = CSV.read(filepath, DataFrame; types=[Int64, Symbol, Float64, Float64])
     df[!, :mortality] .= 0.0
 
@@ -33,9 +37,6 @@ function cyclone_mortality(filepath::String)::Tuple{Function,Function,Function}
 
     return y_b3, y_b8, y_m
 end
-
-logistic(x) = log((x / (1 - x)) + 0.01)
-logit2prob(x) = (exp(x) - 0.01) / (1 + exp(x) - 0.01)
 
 """
     branching_regression(df::DataFrame)::Function
