@@ -13,6 +13,10 @@
             "uuid": "0703355e-b756-11e9-17c0-8b28908087d0",
             "version": "0.25.5"
         },
+        "GeoDataFrames": {
+            "uuid": "62cb38b5-d8d2-4862-a48e-6a340996859f",
+            "version": "0.3.7"
+        },
         "GLM": {
             "uuid": "38e38edf-8417-5370-95a0-9cbb8c7f171a",
             "version": "1.8.3"
