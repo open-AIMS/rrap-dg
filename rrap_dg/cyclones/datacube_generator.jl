@@ -25,7 +25,7 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
     cube = concatenatecubes([scens_b3, scens_b8, scens_m], Dim{:cgroups}(cgroups))
 
     # Save datacube as NetCDF file
-    filename = joinpath(output_path, "cyclone_mortality.nc")
+    filename = joinpath(output_path, "cyclones_mortality.nc")
     return savecube(cube, filename; driver=:netcdf, overwrite=true)
 end
 

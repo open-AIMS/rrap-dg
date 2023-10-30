@@ -7,7 +7,7 @@ jl.seval('include("rrap_dg/cyclones/datacube_generator.jl")')
 
 app = typer.Typer()
 
-@app.command(help="Generate Cyclone mortality datasets")
+@app.command(help="Generate Cyclones mortality datasets")
 def generate(
     rrapdg_datapackage_path: str,
     rme_datapackage_path: str,
