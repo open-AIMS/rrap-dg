@@ -15,7 +15,7 @@ DataFrames with windspeed and mortality data for corals (in this order):
 """
 function cyclone_mortality(dpkg_path::String)::Tuple{Function,Function,Function}
     # Read cyclone mortality csv file
-    filepath = joinpath(dpkg_path, "cyclone_mortality", "fabricius2008.csv")
+    filepath = joinpath(dpkg_path, "cyclones", "coral_cover_cyclone.csv")
     df = CSV.read(filepath, DataFrame; types=[Int64, Symbol, Float64, Float64])
     df[!, :mortality] .= 0.0
 
