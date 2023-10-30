@@ -63,7 +63,7 @@ def generate(
     gen_year = tuple(map(int, gen_year.split(" ")))
 
     # TODO: Leverage metadata in datapackage.json to identify all data files
-    # Currently only the cluster name is extracted.
+    #       Currently only the cluster name is extracted.
     cluster = md.descriptor["name"]
 
     # Get historical NOAA data
