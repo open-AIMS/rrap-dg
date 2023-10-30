@@ -64,7 +64,7 @@ install `rrap-dg` as a local editable copy with `pip`.
 
 The rrap-dg Data Packages are used as inputs by DHW and Cyclone Mortality data generators.
 To generate DHW data cubes, the folders `MIROC5`, `NOAA`, `RECOM` and `spatial` are required. To
-generate the cyclone mortalities, the folder `cyclone_mortality` is required.
+generate the coral mortality projections due to cyclones, the folder `cyclone_mortality` is required.
 
 The data package should be named with the following convention:
 
@@ -95,11 +95,11 @@ Moore_rrapdg_2023-01-24
 │       list_gbr_reefs.csv
 │       Moore.gpkg
 │
-└───cyclone_mortality
-│       fabricius2008.csv
+└───cyclones
+│       coral_cover_cyclone.csv
 ```
 
-This specific data package is available on the RRAP IS Data store:
+The most recent data package is available on the RRAP IS Data store:
 https://hdl.handle.net/102.100.100/481718
 
 ## Degree Heating Weeks (DHW) projections
@@ -133,13 +133,15 @@ Generate Cyclone Mortality projections using data from
 - Fabricius, Katharina E., et al. "Disturbance gradients on inshore and offshore coral reefs caused by a severe tropical cyclone." Limnology and Oceanography 53.2 (2008): 690-704.
 - RefMod Engine Datapackage
 
-The mortality regression model ported from an R version written by Vanessa Haller.
+The mortality regression model was ported from an R version written by Vanessa Haller, from C~Scape.
 
 Usage:
 
 ```console
-(rrap-dg) $ rrapdg cyclones generate [rrapdg datapackage path] [reefmod engine datapackage path] [output directory path] [optional settings...]
+(rrap-dg) $ rrapdg cyclones generate [rrapdg datapackage path] [reefmod engine datapackage path] [output directory path]
 ```
+
+The output directory is assumed to already exist.
 
 ## Connectivity data
 
