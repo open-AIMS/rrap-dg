@@ -1,49 +1,55 @@
-using YAXArrays
-using NetCDF
+using CSV
+using DataFrames
+using DimensionalData
 import GeoDataFrames as GDF
+using GLM
+using NetCDF
+using Statistics
+using YAXArrays
 
 include("scenarios.jl")
 include("mortality_regression.jl")
 
 function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::String)
-    # Get dataframe with windspeed versus mortality (from C~Scape/Fabricius2008)
-    y_b3, y_b8, y_m = cyclone_mortality(rrapdg_dpkg_path)
+    # Get yaxarray of coral mortality for each cyclone category and coral_group
+    _mortality_rates = mortality_rates(rrapdg_dpkg_path)
+
+    # rrap_dg geodatapackage
+    rrap_gdf::DataFrame = _rrap_gdf(rrapdg_dpkg_path)
 
     # Get YAXArray of cyclone scenarios (in windspeeds) for each reef (from RRAP)
-    reef_ids::Vector{String} = filter_reef_ids(rrapdg_dpkg_path, rme_dpkg_path)
-    scens = cyclone_scenarios(rme_dpkg_path, reef_ids)
+    scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path)
 
-    # Apply all regressions for each scenario/location to estimate coral mortality
-    scens_b3 = map(x -> x > 0.0 ? y_b3(x) : 0.0, scens)
-    scens_b8 = map(x -> x > 0.0 ? y_b8(x) : 0.0, scens)
-    scens_m = map(x -> x > 0.0 ? y_m(x) : 0.0, scens)
+    # Fill scens with mortality rate for each coral group
+    # Fill massives
+    massives = contains.(scens.species, "massives")
+    massive_mr = collect(_mortality_rates[:, At(:massives)])
+    scens[:, :, massives, :] = massive_mr[Int64.(scens[:, :, massives, :].data)]
 
-    # Coral Groups
-    cgroups = (["branch3", "branch8", "massive"])
+    branching = .!massives
+    # Fill branching_above_5
+    branching_deeper_than_mr = collect(_mortality_rates[:, At(:branching_deeper_than_5)])
+    locations_deeper_than = rrap_gdf.depth_mean .> 5
+    scens[:, locations_deeper_than, branching, :] = branching_deeper_than_mr[Int64.(
+        scens[:, locations_deeper_than, branching, :].data
+    )]
 
-    # Generate datacube with estimate mortality for each timestep/scenario/location (reef)/ coral group
-    cube = concatenatecubes([scens_b3, scens_b8, scens_m], Dim{:cgroups}(cgroups))
+    # Fill branching_below_5
+    branching_shallower_than_mr = collect(
+        _mortality_rates[:, At(:branching_shallower_than_5)]
+    )
+    locations_shallower_than = rrap_gdf.depth_mean .<= 5
+    scens[:, locations_shallower_than, branching, :] = branching_shallower_than_mr[Int64.(
+        scens[:, locations_shallower_than, branching, :].data
+    )]
 
-    # Save datacube as NetCDF file
+    ## Save datacube as NetCDF file
     filename = joinpath(output_path, "cyclones_mortality.nc")
-    return savecube(cube, filename; driver=:netcdf, overwrite=true)
+    return savecube(scens, filename; driver=:netcdf, overwrite=true)
 end
 
-function filter_reef_ids(rrapdg_dpkg_path::String, rme_dpkg_path::String)::Vector{String}
+function _rrap_gdf(rrapdg_dpkg_path::String)::DataFrame
     rrapdg_dpkg_name = split(rrapdg_dpkg_path, '/')[end]
-    small_reef_name = split(rrapdg_dpkg_name, '_')[1]
-
-    small_reef_path = joinpath(rrapdg_dpkg_path, "spatial", "$(small_reef_name).gpkg")
-    small_gdf = GDF.read(small_reef_path)
-
-    large_reef_path = joinpath(rme_dpkg_path, "data_files", "region", "reefmod_gbr.gpkg")
-    large_gdf = GDF.read(large_reef_path)
-
-    match_ids = unique(
-        vcat(
-            [findall(GDF.intersects.(large_gdf.geom, [geom])) for geom in small_gdf.geom]...
-        ),
-    )
-
-    return large_gdf[match_ids, "LABEL_ID"]
+    cluster_name = split(rrapdg_dpkg_name, '_')[1]
+    return GDF.read(joinpath(rrapdg_dpkg_path, "spatial", "$(cluster_name).gpkg"))
 end
