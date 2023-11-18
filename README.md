@@ -131,7 +131,7 @@ Note that the output directory is assumed to already exist.
 Generate Cyclone Mortality projections using data from
 
 - Fabricius, Katharina E., et al. "Disturbance gradients on inshore and offshore coral reefs caused by a severe tropical cyclone." Limnology and Oceanography 53.2 (2008): 690-704.
-- RefMod Engine Datapackage
+- ReefMod Engine data set
 
 The mortality regression model was ported from an R script written by Dr. Vanessa Haller, intended for use with the C~Scape coral ecosystem model.
 
