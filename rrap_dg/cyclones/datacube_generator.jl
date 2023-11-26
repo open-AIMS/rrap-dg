@@ -21,20 +21,17 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
     scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path)
 
     # Fill scens with mortality rate for each coral group
-    # Fill massives
     massives = contains.(scens.species, "massives")
     massive_mr = collect(_mortality_rates[:, At(:massives)])
     scens[:, :, massives, :] = massive_mr[Int64.(scens[:, :, massives, :].data)]
 
     branching = .!massives
-    # Fill branching_above_5
     branching_deeper_than_mr = collect(_mortality_rates[:, At(:branching_deeper_than_5)])
     locations_deeper_than = rrap_gdf.depth_mean .> 5
     scens[:, locations_deeper_than, branching, :] = branching_deeper_than_mr[Int64.(
         scens[:, locations_deeper_than, branching, :].data
     )]
 
-    # Fill branching_below_5
     branching_shallower_than_mr = collect(
         _mortality_rates[:, At(:branching_shallower_than_5)]
     )
@@ -43,7 +40,6 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
         scens[:, locations_shallower_than, branching, :].data
     )]
 
-    ## Save datacube as NetCDF file
     filename = joinpath(output_path, "cyclones_mortality.nc")
     return savecube(scens, filename; driver=:netcdf, overwrite=true)
 end
