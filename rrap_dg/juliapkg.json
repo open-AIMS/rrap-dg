@@ -1,5 +1,5 @@
 {
-    "julia": "1.9.3",
+    "julia": "1.10.0",
     "packages": {
         "CSV": {
             "uuid": "336ed68f-0bac-5ca0-87d4-7b16caf5d00b",
@@ -32,6 +32,26 @@
         "YAXArrays": {
             "uuid": "c21b50f5-aa40-41ea-b809-c0f5e47bfa5c",
             "version": "0.5.2"
+        },
+        "BlackBoxOptim": {
+            "uuid": "a134a8b2-14d6-55f6-9291-3336d3ab0209",
+            "version": "0.6.3"
+        },
+        "ArchGDAL": {
+            "uuid": "c9ce4bd3-c3d5-55b8-8973-c0e20141b8c3",
+            "version": "0.10.2"
+        },
+        "StatsBase": {
+            "uuid": "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91",
+            "version": "0.34.2"
+        },
+        "Clustering": {
+            "uuid": "aaaa29a8-35af-508c-8bc3-b662a17a0fe5",
+            "version": "0.15.7"
+        },
+        "Distances": {
+            "uuid": "b4f34e82-e78d-54a5-968a-f98e89d6e8f7",
+            "version": "0.10.11"
         }
     }
 }
