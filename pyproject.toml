@@ -33,7 +33,9 @@ dependencies = [
     "rioxarray",
     "netCDF4",
     "typer",
-    "rich"
+    "rich",
+    "juliacall",
+    "juliapkg"
 ]
 dynamic = ["version"]
 
