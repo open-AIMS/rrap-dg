@@ -45,20 +45,23 @@ It is recommended that any development work be done in a separate environment.
 Here, [`mamba`](https://mamba.readthedocs.io/en/latest/) is used to create a local `conda` environment.
 
 ```bash
-# Assume Windows platform
-$ mamba create -n rrap-dg --file win_env.yml
+# Create a new environment called rrap-dg
+$ mamba create -n rrap-dg python=3.11
 
 # Don't forget to activate the environment
 $ mamba activate rrap-dg
-```
 
-For development purposes, you want to be able to make changes to the code as well, so
-install `rrap-dg` as a local editable copy with `pip`.
-
-```bash
+# Install local development copy of rrap-dg
 (rrap-dg) $ pip install -e .
 ```
 
+Note: The first time `rrapdg` is run, it will go through an initial set up process.
+
+Run the help command to trigger the setup.
+
+```bash
+(rrap-dg) $ rrapdg --help
+```
 
 ## rrap-dg Data Packages
 

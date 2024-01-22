@@ -34,8 +34,11 @@ dependencies = [
     "netCDF4",
     "typer",
     "rich",
+    "tqdm",
     "juliacall",
-    "juliapkg"
+    "juliapkg",
+    "datapackage",
+    "mdsisclienttools"
 ]
 dynamic = ["version"]
 
