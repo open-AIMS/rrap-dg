@@ -151,6 +151,25 @@ TODO
 
 TODO
 
+## Domain clusters
+
+Assign each location in a geopackage file to a cluster using k-means clustering.
+The cluster a location is a member of is indicated by a new column named `cluster_id`.
+
+The number of clusters are determined by optimizing for a high Silhouette score with
+Adaptive Differential Evolution (`adaptive_de_rand_1_bin_radiuslimited()` in
+[BlackBoxOptim.jl](https://github.com/robertfeldt/BlackBoxOptim.jl)).
+
+```console
+(rrap-dg) $ rrapdg domain cluster [geopackage path] [output directory path]
+
+# Example
+(rrap-dg) $ rrapdg domain cluster "C:/example/example.gpkg" "./test.gpkg"
+```
+
+The method reports a "Best candidate", the _floor_ of which indicates the identified
+optimal number of clusters.
+
 ## License
 
 `rrap-dg` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
