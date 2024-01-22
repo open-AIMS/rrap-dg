@@ -33,7 +33,11 @@ dependencies = [
     "rioxarray",
     "netCDF4",
     "typer",
-    "rich"
+    "rich",
+    "tqdm",
+    "juliacall",
+    "datapackage",
+    "mdsisclienttools"
 ]
 dynamic = ["version"]
 
