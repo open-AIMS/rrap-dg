@@ -40,7 +40,7 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
         scens[:, locations_shallower_than, branching, :].data
     )]
 
-    filename = joinpath(output_path, "cyclones_mortality.nc")
+    filename = joinpath(output_path, "cyclone_mortality.nc")
     return savecube(scens, filename; driver=:netcdf, overwrite=true)
 end
 
