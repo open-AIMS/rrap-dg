@@ -58,8 +58,8 @@ function cyclone_scenarios(rrap_gdf::DataFrame, rme_dpkg_path::String)::YAXArray
         for label in reef_filters.labels
             # Add 1 so category 0 coresponds to idx 1, etc
             cyc_categories = scen[:, label] .+ 1
-            reef_filter = dropdims(reef_filters[reef_filters.labels.==label, :]; dims=1)
-            @views scenarios[:, reef_filter, :, At(idx_s)] .= cyc_categories
+            reef_filter = reef_filters[labels=At(label)].data
+            scenarios[:, reef_filter, :, idx_s] .= cyc_categories
         end
     end
 
@@ -86,14 +86,14 @@ Returns a YAXArray with dimensions (:labels, :filters) where :labels are LABEL_I
 reefs and :filters are booleans each rrap location that are true when that rrap location
 belongs to the correspondent rme reef
 """
-function _reef_filters(rme_gdf::DataFrame, rrap_gdf::DataFrame, match_ids::Vector)::YAXArray
-    rme_names = lowercase.(rme_gdf[match_ids, :].GBR_NAME)
-    rrap_names = lowercase.(rrap_gdf.Reef)
+function _reef_filters(rme_gdf::DataFrame, target_gdf::DataFrame, match_ids::Vector)::YAXArray
+    rme_names = lowercase.(rme_gdf[match_ids, :].UNIQUE_ID)
+    rrap_names = lowercase.(target_gdf.UNIQUE_ID)
 
     # Filter sites for each reef
-    rrap_ids = rrap_gdf.reef_siteid
+    rrap_ids = target_gdf.reef_siteid
     sites_by_reef = [
-        rrap_ids .∈ [rrap_gdf[occursin.(rrap_names, rme_name), "reef_siteid"]] for
+        rrap_ids .∈ [target_gdf[occursin.(rrap_names, rme_name), "reef_siteid"]] for
         rme_name in rme_names
     ]
 
