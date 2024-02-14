@@ -301,7 +301,7 @@ def generate(
             dhw = np.maximum(dhw, 0.0)
 
         # Save to a netcdf file
-        output_file = pj(output_loc, f"dhw_RCP{RCP_name}.nc")
+        output_file = pj(output_loc, f"dhwRCP{RCP_name}.nc")
         with netCDF4.Dataset(output_file, "w", format="NETCDF4") as nc_out:
             # Define dimensions
             nc_out.createDimension("member", n_sims)
