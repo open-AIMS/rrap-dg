@@ -41,6 +41,9 @@ def generate(
 ) -> None:
     """Produce Degree Heating Week projections for a given cluster.
 
+    Note: This process is very memory intensive (~20GB peak usage) and time consuming
+          (10s of minutes but generally < 1 hour).
+
     Parameters
     ----------
     input_loc : str, location of dataset
