@@ -143,7 +143,7 @@ function cluster(gpkg_path::String, output_path::String)
     res = bboptimize(
         opt_func;
         SearchRange=dist_bnds,
-        MaxSteps=200_000,
+        MaxSteps=100_000,
         ϵ=0.2,
     )
     best_params = best_candidate(res)
