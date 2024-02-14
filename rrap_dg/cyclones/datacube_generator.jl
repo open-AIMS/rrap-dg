@@ -45,7 +45,7 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
 end
 
 function _rrap_gdf(rrapdg_dpkg_path::String)::DataFrame
-    rrapdg_dpkg_name = split(rrapdg_dpkg_path, '/')[end]
+    rrapdg_dpkg_name = splitpath(rrapdg_dpkg_path)[end]
     cluster_name = split(rrapdg_dpkg_name, '_')[1]
     return GDF.read(joinpath(rrapdg_dpkg_path, "spatial", "$(cluster_name).gpkg"))
 end
