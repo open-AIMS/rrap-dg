@@ -105,6 +105,16 @@ Moore_rrapdg_2023-01-24
 The most recent data package is available on the RRAP IS Data store:
 https://hdl.handle.net/102.100.100/481718
 
+## Domain Template
+
+**TODO**
+
+Create an empty ADRIA Domain to be filled with data.
+
+```console
+(rrap-dg) $ rrapdg template generate [directory]
+```
+
 ## Degree Heating Weeks (DHW) projections
 
 Generate Degree Heating Week projections using combinations of
@@ -168,6 +178,7 @@ TODO
 
 Assign each location in a geopackage file to a cluster using k-means clustering.
 The cluster a location is a member of is indicated by a new column named `cluster_id`.
+Results are outputted to a new geopackage file saved to the user-indicated location.
 
 The number of clusters are determined by optimizing for a high Silhouette score with
 Adaptive Differential Evolution (`adaptive_de_rand_1_bin_radiuslimited()` in
