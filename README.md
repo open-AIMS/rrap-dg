@@ -148,7 +148,17 @@ The output directory is assumed to already exist.
 
 ## Connectivity data
 
-TODO
+Download connectivity data from M&DS datastore
+
+```console
+(rrap-dg) $ rrapdg connectivity download [output directory] [dataset id]
+```
+
+For example, to download and save the dataset with id "102.100.100/602432" in the current directory:
+
+```console
+(rrap-dg) $ rrapdg connectivity download . 102.100.100/602432
+```
 
 ## Wave data
 
