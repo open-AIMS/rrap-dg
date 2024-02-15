@@ -188,7 +188,7 @@ Matches locations for a reef by their spatial intersect with a smaller spatial l
 - `small_ds` : data for smaller geospatial area
 
 # Returns
-Cover for each coral species/size class for each location [species ⋅ location]
+Cover [species ⋅ location] relative to k area.
 
 
     downscale_icc(rrapdg_dpkg::String, output_path::String)::Nothing
@@ -237,7 +237,7 @@ function downscale_icc(
     target_init_cover = YAXArray(
         (
             Dim{:species}(coral_id),
-            Dim{:reef_siteid}(small_ds.reef_siteid)
+            Dim{:locations}(small_ds.reef_siteid)
         ),
         zeros(n_species, n_locs)
     )
@@ -260,12 +260,12 @@ function downscale_icc(
         target_init_cover[:, relevant_locs] .= (
             (cluster_cover .* cluster_abs_k_area[:, relevant_locs])
             ./
-            small_ds.area[relevant_locs]'
+            cluster_abs_k_area[:, relevant_locs]
         )
     end
 
     # Sum of species/size class cover should be <= maximum carrying capacity
-    @assert all(sum(target_init_cover, dims=1) .<= small_ds.k')
+    @assert all(sum(target_init_cover, dims=1) .<= cluster_abs_k_area)
 
     return target_init_cover
 end
