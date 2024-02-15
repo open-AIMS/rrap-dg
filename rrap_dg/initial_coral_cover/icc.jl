@@ -38,26 +38,26 @@ function _colony_mean_area(colony_diam_means::Array{T})::Array{T} where {T<:Floa
 end
 
 """
-    _convert_abs_to_k(coral_cover::Union{NamedDimsArray,Matrix{Float64}}, site_data::DataFrame)::Union{NamedDimsArray,Matrix{Float64}}
+    _convert_abs_to_k(coral_cover::Union{NamedDimsArray,Matrix{Float64}}, spatial::DataFrame)::Union{NamedDimsArray,Matrix{Float64}}
 
 Convert coral cover data from being relative to absolute location area to relative to
 \$k\$ area.
 """
 function _convert_abs_to_k(
-    coral_cover::Union{YAXArray,Matrix{Float64}}, site_data::DataFrame
+    coral_cover::Union{YAXArray,Matrix{Float64}}, spatial::DataFrame
 )::Union{YAXArray,Matrix{Float64}}
     # Initial coral cover is provided as values relative to location area.
     # Convert coral covers to be relative to k area, ignoring locations with 0 carrying
     # capacity (k area = 0.0).
-    absolute_k_area = (site_data.k .* site_data.area)'  # max possible coral area in m^2
+    absolute_k_area = (spatial.k .* spatial.area)'  # max possible coral area in m^2
     valid_locs::BitVector = absolute_k_area' .> 0.0
     coral_cover[:, valid_locs] .= (
-        (coral_cover[:, valid_locs] .* site_data.area[valid_locs]') ./
+        (coral_cover[:, valid_locs] .* spatial.area[valid_locs]') ./
         absolute_k_area[valid_locs]'
     )
 
     # Ensure initial coral cover values are <= maximum carrying capacity
-    @assert all(sum(coral_cover; dims=1) .<= 1.0)
+    @assert all(sum(coral_cover; dims=1) .<= 1.0) "Max: $(maximum(sum(coral_cover; dims=1)))"
 
     return coral_cover
 end
@@ -70,14 +70,14 @@ Load GBR geopackage associated with RME (v1.0.18) with precomputed/packaged area
 \$k\$ values.
 
 # Arguments
-- `data_path` : Path to ReefMod data
+- `rrapdg_dpkg` : Path to rrap-dg data package
 
 # Returns
 YAXArray[locs, species]
 """
-function load_rme_gpkg(rme_path)
+function load_rme_gpkg(rrapdg_dpkg::String)
     id_list = CSV.read(
-        joinpath(rme_path, "data_files", "id", "id_list_2023_03_30.csv"),
+        joinpath(rrapdg_dpkg, "spatial", "id_list_2023_03_30.csv"),
         DataFrame;
         header=false,
         comment="#",
@@ -85,48 +85,50 @@ function load_rme_gpkg(rme_path)
 
     # Re-order spatial data to match RME dataset
     # MANUAL CORRECTION
-    site_data = GDF.read(joinpath(rme_path, "data_files", "region", "reefmod_gbr.gpkg"))
-    site_data[site_data.LABEL_ID .== "20198", :LABEL_ID] .= "20-198"
-    id_order = [first(findall(x .== site_data.LABEL_ID)) for x in string.(id_list[:, 1])]
-    site_data = site_data[id_order, :]
+    gbr_data = GDF.read(joinpath(rrapdg_dpkg, "spatial", "reefmod_gbr.gpkg"))
+    gbr_data[gbr_data.LABEL_ID .== "20198", :LABEL_ID] .= "20-198"
+    id_order = [first(findall(x .== gbr_data.LABEL_ID)) for x in string.(id_list[:, 1])]
+    gbr_data = gbr_data[id_order, :]
 
     # Check that the two lists of location ids are identical
-    @assert isempty(findall(site_data.LABEL_ID .!= id_list[:, 1]))
+    @assert isempty(findall(gbr_data.LABEL_ID .!= id_list[:, 1]))
 
     # Convert area in km² to m²
-    site_data[:, :area] .= id_list[:, 2] .* 1e6
+    gbr_data[:, :area] .= id_list[:, 2] .* 1e6
 
     # Calculate `k` area (1.0 - "ungrazable" area)
-    site_data[:, :k] .= 1.0 .- id_list[:, 3]
+    gbr_data[:, :k] .= 1.0 .- id_list[:, 3]
 
-    return site_data
+    return gbr_data
 end
 
 
 """
-    load_rme_cover(data_path::String, site_data::DataFrame)::YAXArray
+    load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
 
 Load mean of initial covers from ReefMod Engine datasets (v1.0.18).
 
 # Arguments
-- `data_path` : Path to ReefMod data
+- `rrapdg_dpkg` : Path to ReefMod data
+- `gbr_gpkg` : ReefMod GBR-scale geopackage
 
 # Returns
 YAXArray[locs, species]
 """
-function load_rme_cover(rme_path::String, rme_gpkg::DataFrame)::YAXArray
-    icc_path = joinpath(rme_path, "data_files", "initial")
+function load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
+    icc_path = joinpath(rrapdg_dpkg, "coral_cover")
 
     # Identify coral cover files with known prefix pattern
     valid_files = filter(isfile, readdir(icc_path; join=true))
-    icc_files = filter(x -> occursin("coral_", x), valid_files)
+    icc_files = filter(x -> occursin("coral_", basename(x)), valid_files)
     if isempty(icc_files)
         ArgumentError("No coral cover data files found in: $(icc_path)")
     end
+    @assert length(icc_files) == 6 "Number of coral files do not match expected number of species (6)"
 
     # Shape is locations, scenarios, species
     # 20 is the known number of scenarios.
-    loc_ids = rme_gpkg.LABEL_ID
+    loc_ids = gbr_gpkg.LABEL_ID
     icc_data = zeros(length(loc_ids), 20, length(icc_files))
     for (i, fn) in enumerate(icc_files)
         icc_data[:, :, i] = Matrix(
@@ -149,18 +151,24 @@ function load_rme_cover(rme_path::String, rme_gpkg::DataFrame)::YAXArray
     # Take the mean over repeats, as suggested by YM (pers comm. 2023-02-27 12:40pm AEDT).
     # Convert from percent to relative values.
     icc_data = ((dropdims(mean(icc_data; dims=2); dims=2)) ./ 100.0)
+    # icc_data ./= 100.0
 
     # Repeat species over each size class and reshape to give ADRIA compatible size (36 * n_locs).
     # Multiply by size class weights to give initial cover distribution over each size class.
+    # icc = zeros(36, length(loc_ids), 20)
+    # for scen in axes(icc_data, 2)
+    #     icc[:, :, scen] .= Matrix(hcat(reduce.(vcat, eachrow(icc_data[:, scen, :] .* [size_class_weights]))...))
+    # end
     icc_data = Matrix(hcat(reduce.(vcat, eachrow(icc_data .* [size_class_weights]))...))
 
     # Convert values relative to absolute area to values relative to k area
-    icc_data = _convert_abs_to_k(icc_data, rme_gpkg)
+    icc_data = _convert_abs_to_k(icc_data, gbr_gpkg)
 
     return YAXArray(
         (
             Dim{:species}(1:(length(icc_files) * 6)),
             Dim{:locs}(loc_ids)
+            # Dim{:scenarios}(1:20)
         ),
         icc_data
     )
@@ -183,13 +191,13 @@ Matches locations for a reef by their spatial intersect with a smaller spatial l
 Cover for each coral species/size class for each location [species ⋅ location]
 
 
-    downscale_icc(rme_path::String, output_path::String)::Nothing
+    downscale_icc(rrapdg_dpkg::String, output_path::String)::Nothing
 
 Downscale initial coral covers from ReefMod Engine and export to provided output path.
 
 # Arguments
-- `rme_path` : ReefMod Engine data set
-- `output_path` : File path to export to
+- `rrapdg_dpkg` : Path to rrap-dg data package
+- `output_path` : Path to export to resulting netCDF to
 """
 function downscale_icc(
     init_cc::YAXArray,
@@ -204,6 +212,22 @@ function downscale_icc(
         vcat([findall(GDF.intersects(large_ds.geom, [g])) for g in small_ds.geom]...)
     )
 
+    # Create named ids for functional groups
+    n_classes = 6
+    taxa_names = [
+        "arborescent Acropora",
+        "tabular Acropora",
+        "corymbose Acropora",
+        "corymbose non-Acropora",
+        "Small massives",
+        "Large massives"
+    ]
+
+    tn = repeat(taxa_names; inner=n_classes)
+    taxa_id = repeat(1:n_classes; inner=n_classes)
+    class_id = repeat(1:n_classes, n_classes)
+    coral_id = String[join(x, "_") for x in zip(tn, taxa_id, class_id)]
+
     src_labels = large_ds[match_ids, :LABEL_ID]
     target_names = unique(small_ds.Reef .|> lowercase)
 
@@ -212,7 +236,7 @@ function downscale_icc(
     n_locs = length(small_ds.reef_siteid)
     target_init_cover = YAXArray(
         (
-            Dim{:species}(1:n_species),
+            Dim{:species}(coral_id),
             Dim{:reef_siteid}(small_ds.reef_siteid)
         ),
         zeros(n_species, n_locs)
@@ -245,11 +269,12 @@ function downscale_icc(
 
     return target_init_cover
 end
-function downscale_icc(rme_path::String, target_gpkg_path::String, output_path::String)::Nothing
-    rme_gpkg = load_rme_gpkg(rme_path)
-    rme_icc = load_rme_cover(rme_path, rme_gpkg)
+function downscale_icc(rrapdg_dpkg::String, target_cluster::String, output_path::String)::Nothing
+    rme_gpkg = load_rme_gpkg(rrapdg_dpkg)
+    rme_icc = load_rme_cover(rrapdg_dpkg, rme_gpkg)
 
-    target_gpkg = GDF.read(target_gpkg_path)
+    target_gpkg = GDF.read(joinpath(rrapdg_dpkg, "spatial", "$(target_cluster).gpkg"))
+
     icc = downscale_icc(rme_icc, rme_gpkg, target_gpkg)
 
     savecube(icc, output_path, driver=:netcdf)

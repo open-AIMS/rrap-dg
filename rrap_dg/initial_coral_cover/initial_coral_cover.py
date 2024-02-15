@@ -9,8 +9,8 @@ app = typer.Typer()
 
 @app.command(help="Create new netCDF with initial coral cover values.")
 def downscale_icc(
-    rme_path: str,
-    target_gpkg: str,
+    rrapdg_dpkg_path: str,
+    target_cluster: str,
     output_path: str,
 ) -> None:
-    jl.downscale_icc(rme_path, target_gpkg, output_path)
+    jl.downscale_icc(rrapdg_dpkg_path, target_cluster, output_path)
