@@ -306,47 +306,47 @@ def generate(
         with netCDF4.Dataset(output_file, "w", format="NETCDF4") as nc_out:
             # Define dimensions
             nc_out.createDimension("member", n_sims)
-            nc_out.createDimension("sites", n_sites)
+            nc_out.createDimension("locations", n_sites)
             nc_out.createDimension("timesteps", n_years)
 
             # Define Variables
-            lon_ID = nc_out.createVariable("longitude", "f8", ("sites",))
-            lat_ID = nc_out.createVariable("latitude", "f8", ("sites",))
-            reef_ID = nc_out.createVariable("reef_siteid", str, ("sites",))
-            unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("sites",))
+            lon_ID = nc_out.createVariable("longitude", "f8", ("locations",))
+            lat_ID = nc_out.createVariable("latitude", "f8", ("locations",))
+            reef_ID = nc_out.createVariable("reef_siteid", str, ("locations",))
+            unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
             dhw_ID = nc_out.createVariable(
-                "dhw", "f8", ("member", "sites", "timesteps")
+                "dhw", "f8", ("member", "locations", "timesteps")
             )  # variable order flipped for consistency with MATLAB
 
             # Put attributes
             # latitude
-            lon_ID.coordinates = "sites"
+            lon_ID.coordinates = "locations"
             lat_ID.units = "degrees_north"
             lat_ID.long_name = "latitude"
             lat_ID.standard_name = "latitude"
             lat_ID.projection = crs_code
 
             # longitude
-            lon_ID.coordinates = "sites"
+            lon_ID.coordinates = "locations"
             lon_ID.units = "degrees_east"
             lon_ID.long_name = "longitude"
             lon_ID.standard_name = "longitude"
             lon_ID.projection = crs_code
 
             # reef_siteid
-            reef_ID.coordinates = "sites"
+            reef_ID.coordinates = "locations"
             reef_ID.units = ""
             reef_ID.long_name = "reef site id"
             reef_ID.standard_name = "reef_site_id"
 
             # unique_id
-            unique_ID.coordinates = "sites"
+            unique_ID.coordinates = "locations"
             unique_ID.units = ""
             unique_ID.long_name = "unique id"
             unique_ID.standard_name = "unique_id"
 
             # DHW data
-            dhw_ID.coordinates = "timesteps sites members"
+            dhw_ID.coordinates = "timesteps locations members"
             dhw_ID.units = "DegC-week"
             dhw_ID.long_name = "degree heating week"
             dhw_ID.standard_name = "DHW"
