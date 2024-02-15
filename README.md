@@ -139,6 +139,21 @@ For example, with default values shown for optional settings:
 
 Note that the output directory is assumed to already exist.
 
+## Initial Coral Cover
+
+Initial coral cover data is downscaled from ReefMod Engine (RME) data.
+The current process is compatible with RME v1.10.18
+
+```console
+(rrap-dg) $ rrapdg coral-cover downscale-icc [reefmod engine datapackage path] [target geopackage] [output path]
+```
+
+For example, to downscale RME data for the Moore cluster defined by a geopackage:
+
+```console
+(rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/RME_v1 ./Moore.gpkg ./coral_cover.nc
+```
+
 ## Cyclone Mortality projections
 
 Generate Cyclone Mortality projections using data from
