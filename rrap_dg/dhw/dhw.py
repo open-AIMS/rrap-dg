@@ -111,6 +111,7 @@ def generate(
     rcp_match = {"2.6": "26", "4.5": "45", "6.0": "60", "8.5": "85"}
 
     # Load in GBR-wide reef positions
+    # TODO: Switch to using the geopackage!
     gbr_reefs = pd.read_csv(pj(input_loc, "spatial", "list_gbr_reefs.csv"))
     gbr_reef_lon = gbr_reefs["LON"].to_numpy()
     gbr_reef_lat = gbr_reefs["LAT"].to_numpy()
