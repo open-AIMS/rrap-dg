@@ -33,6 +33,7 @@ app = typer.Typer()
 
 @app.command(help="Generate Degree Heating Week datasets")
 def generate(
+    cluster_name: str,
     input_loc: str,
     output_loc: str,
     n_sims: int = 50,
@@ -46,6 +47,7 @@ def generate(
 
     Parameters
     ----------
+    cluster_name : str, name of geopackage file to use (typically same as reef cluster name)
     input_loc : str, location of dataset
     output_loc : str, output location of generated netCDFs
     n_sims : int, number of members to generate
@@ -60,14 +62,12 @@ def generate(
     CRW : Coral Reef Watch
     RCP : Representative Concentration Pathway
     """
-    md = dpkg.DataPackage(pj(input_loc, "datapackage.json"))
+    # TODO: Leverage metadata in datapackage.json to identify all data files
+    #       Currently only the cluster name is extracted.
+    # md = dpkg.DataPackage(pj(input_loc, "datapackage.json"))
 
     RCPs = tuple(RCPs.split(" "))
     gen_year = tuple(map(int, gen_year.split(" ")))
-
-    # TODO: Leverage metadata in datapackage.json to identify all data files
-    #       Currently only the cluster name is extracted.
-    cluster = md.descriptor["name"]
 
     # Get historical NOAA data
     hist_dhw_data = xr.open_dataset(pj(input_loc, "NOAA", "GBR_dhw_hist_noaa.nc"))
@@ -75,7 +75,7 @@ def generate(
     hist_dhw_data = hist_dhw_data.rio.write_crs(crs_code)
 
     # Read spatial data and ensure CRS matches
-    cluster_poly = gpd.read_file(pj(input_loc, "spatial", f"{cluster}.gpkg")).to_crs(
+    cluster_poly = gpd.read_file(pj(input_loc, "spatial", f"{cluster_name}.gpkg")).to_crs(
         crs_code
     )
 
@@ -118,7 +118,7 @@ def generate(
     # gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
 
     # Load yearly DHW data for cluster
-    recom_files = glob(pj(input_loc, "RECOM", f"{cluster}*_*_dhw*.nc"))
+    recom_files = glob(pj(input_loc, "RECOM", cluster_name, f"*{cluster_name}*_*_dhw*.nc"))
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
 
@@ -141,13 +141,7 @@ def generate(
         )
     )
 
-    # Identify common locations between RECOM and NOAA data
-    # common_lons = np.intersect1d(recom_lonlats[:, 0], gbr_reef_lon)
-    # common_lats = np.intersect1d(recom_lonlats[:, 1], gbr_reef_lat)
-    # common_lonlats = np.array(list(zip(common_lons, common_lats)))
-
-    # for rcp_i in track(range(len(RCPs)), description="Generating members..."):
-    for rcp_i in range(len(RCPs)):
+    for rcp_i in track(range(len(RCPs)), description="Generating members..."):
         RCP = RCPs[rcp_i]
         RCP_name = rcp_match[RCP]
 
