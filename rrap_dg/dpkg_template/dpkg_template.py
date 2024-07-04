@@ -5,10 +5,10 @@ from datetime import datetime
 import typer
 
 
-README_BASE = f"""
+README_BASE = """
 # ADRIA data package
 
-Created: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Created: {created}
 
 
 ## Connectivity
@@ -39,7 +39,7 @@ def generate(template_path: str):
     open(pj(template_path, "datapackage.json"), "a").close()
 
     with open(pj(template_path, "README.md"), "a") as fp:
-        fp.write(README_BASE)
+        fp.write(README_BASE.format(created=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 @app.command(help="Create ADRIA Domain data package pre-filling with data from data store")
 def package(template_path: str, spec: str):
