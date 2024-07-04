@@ -1,9 +1,10 @@
 import typer
 import juliacall
+from rrap_dg import PKG_PATH
+
 
 jl = juliacall.newmodule("Cyclones")
-
-jl.seval('include("rrap_dg/cyclones/datacube_generator.jl")')
+jl.seval(f'include("{PKG_PATH}/cyclones/datacube_generator.jl")')
 
 app = typer.Typer()
 
