@@ -11,7 +11,14 @@ Provides a single command-line interface to generate data sets for use with [ADR
 **Table of Contents**
 
 - [Installation](#installation)
-- [Degree Heating Weeks](#degree-heating-weeks)
+- [rrap-dg Data Packages](#rrap-dg-data-packages)
+- [Domain Template](#domain-template)
+- [Degree Heating Weeks](#degree-heating-weeks-dhw-projections)
+- [Initial Coral Cover](#initial-coral-cover)
+- [Cyclone Mortality](#cyclone-mortality-projections)
+- [Connectivity Data](#connectivity-data)
+- [Wave Data](#wave-data)
+- [Domain Clusters](#domain-clusters)
 - [License](#license)
 
 ## Installation
