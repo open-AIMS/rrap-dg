@@ -1,9 +1,9 @@
 import typer
 import juliacall
-
+from rrap_dg import PKG_PATH
 
 jl = juliacall.newmodule("DownscaleInitialCoralCover")
-jl.seval('include("rrap_dg/initial_coral_cover/icc.jl")')
+jl.seval(f'include("{PKG_PATH}/initial_coral_cover/icc.jl")')
 
 app = typer.Typer()
 

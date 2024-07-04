@@ -1,9 +1,10 @@
 import typer
 import juliacall
+from rrap_dg import PKG_PATH
 
 
 jl = juliacall.newmodule("DomainClustering")
-jl.seval('include("rrap_dg/cluster_domain/domain_clustering.jl")')
+jl.seval(f'include("{PKG_PATH}/cluster_domain/domain_clustering.jl")')
 
 app = typer.Typer()
 
