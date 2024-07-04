@@ -15,6 +15,7 @@ using
     CSV,
     DataFrames,
     NetCDF,
+    TOML,
     YAXArrays
 
 using
@@ -26,6 +27,22 @@ import GeoDataFrames as GDF
 import GeoDataFrames.GeoInterface as GI
 import YAXArrays.DD: At
 
+
+"""
+    bin_edges()
+
+Helper function defining coral colony diameter bin edges in cm.
+"""
+function bin_edges()
+    return Matrix([
+        0.0 0.0 0.0 0.0 0.0 0.0 0.0;          #  arborescent Acropora
+        5.0 7.5 10.0 20.0 40.0 100.0 150.0;   #  tabular Acropora
+        5.0 7.5 10.0 20.0 35.0 50.0 100.0;    #  corymbose Acropora
+        5.0 7.5 10.0 15.0 20.0 40.0 50.0;     #  corymbose non-Acropora and Pocillopora
+        5.0 7.5 10.0 20.0 40.0 50.0 100.0;    #  small massives
+        5.0 7.5 10.0 20.0 40.0 50.0 100.0     #  large massives
+    ])
+end
 
 """
     _colony_mean_area(colony_diam_means::Array{T})::Array{T} where {T<:Real}
@@ -176,11 +193,16 @@ Load mean of initial covers from ReefMod Engine datasets (v1.0.18).
 # Arguments
 - `rrapdg_dpkg` : Path to ReefMod data
 - `gbr_gpkg` : ReefMod GBR-scale geopackage
+- `bin_edges` : Bin edges for each functional group and size class
 
 # Returns
 YAXArray[locs, species]
 """
-function load_rme_cover(dataset::String, gbr_gpkg::DataFrame)::YAXArray
+function load_rme_cover(
+    dataset::String,
+    gbr_gpkg::DataFrame,
+    bin_edges::Matrix{Float64}
+)::YAXArray
     icc_path = _get_icc_dir(dataset)
 
     # Identify coral cover files with known prefix pattern
@@ -210,39 +232,33 @@ function load_rme_cover(dataset::String, gbr_gpkg::DataFrame)::YAXArray
     # Distribution is used to split ReefMod initial species covers into ADRIA's 6 size
     # classes by weighting with the cdf.
     reef_mod_area_dist = LogNormal(log(700), log(4))
-    bin_edges_area = _colony_mean_area(Float64[0, 2, 5, 10, 20, 40, 80])
+    bin_edges_area = _colony_mean_area(bin_edges)
 
     # Find integral density between bounds of each size class areas to create weights for each size class.
     cdf_integral = cdf.(reef_mod_area_dist, bin_edges_area)
-    size_class_weights = (cdf_integral[2:end] .- cdf_integral[1:(end - 1)])
-    size_class_weights = size_class_weights ./ sum(size_class_weights)
+    size_class_weights = (cdf_integral[:, 2:end] .- cdf_integral[:, 1:(end - 1)])
+    size_class_weights = size_class_weights ./ sum(size_class_weights, dims=2)
+    replace!(size_class_weights, NaN=>0.0)
 
     # Take the mean over repeats, as suggested by YM (pers comm. 2023-02-27 12:40pm AEDT).
     # Convert from percent to relative values.
     icc_data = ((dropdims(mean(icc_data; dims=2); dims=2)) ./ 100.0)
-    # icc_data ./= 100.0
 
     # Repeat species over each size class and reshape to give ADRIA compatible size (36 * n_locs).
     # Multiply by size class weights to give initial cover distribution over each size class.
-    # icc = zeros(36, length(loc_ids), 20)
-    # for scen in axes(icc_data, 2)
-    #     icc[:, :, scen] .= Matrix(hcat(reduce.(vcat, eachrow(icc_data[:, scen, :] .* [size_class_weights]))...))
-    # end
-    icc_data = Matrix(hcat(reduce.(vcat, eachrow(icc_data .* [size_class_weights]))...))
+    icc = Matrix(vcat([stack(icc_data[:, i] .* [size_class_weights[i, :]]) for i in axes(size_class_weights, 1)]...))
 
     # Convert values relative to absolute area to values relative to k area
-    icc_data = _convert_abs_to_k(icc_data, gbr_gpkg)
+    icc = _convert_abs_to_k(icc, gbr_gpkg)
 
     return YAXArray(
         (
             Dim{:species}(1:(length(icc_files) * 6)),
             Dim{:locs}(loc_ids)
         ),
-        icc_data
+        icc
     )
 end
-
-# intersects(geomtrait(a), geomtrait(b), a, b)
 
 """
     downscale_icc(init_cc::NamedDimsArray, large_ds::DataFrame, small_ds::DataFrame)::Matrix{Float64}
@@ -338,9 +354,9 @@ provided output path.
 - `target_gpkg` : Path to geopackage file defining area of interest
 - `output_path` : Path to export to resulting netCDF to
 """
-function downscale_icc(dataset::String, target_gpkg::String, output_path::String)::Nothing
+function downscale_icc(dataset::String, target_gpkg::String, output_path::String; bin_edges=bin_edges())::Nothing
     gbr_gpkg = load_gbr_gpkg(dataset)
-    rme_icc = load_rme_cover(dataset, gbr_gpkg)
+    rme_icc = load_rme_cover(dataset, gbr_gpkg, bin_edges())
     target_gpkg = GDF.read(target_gpkg)
 
     icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
@@ -350,6 +366,40 @@ function downscale_icc(dataset::String, target_gpkg::String, output_path::String
     catch err
         if err isa ArgumentError
             @info "File appears to already exist or cannot be written to."
+        end
+    end
+
+    return nothing
+end
+
+"""
+    downscale_icc(rme_dataset::String, target_gpkg::String, output_path::String)::Nothing
+
+Downscale initial coral covers from ReefMod Engine for a given spatial area and export to
+provided output path.
+
+# Arguments
+- `rme_dataset` : Path to rrap-dg data package
+- `target_gpkg` : Path to geopackage file defining area of interest
+- `output_path` : Directory to export the resulting netCDFs to
+- `bin_edge_fn` : TOML file defining bin edges
+"""
+function downscale_icc(dataset::String, target_gpkg::String, output_path::String, bin_edge_fn::String)::Nothing
+    gbr_gpkg = load_gbr_gpkg(dataset)
+    target_gpkg = GDF.read(target_gpkg)
+
+    @assert isdir(output_path) "$(output_path) is not a valid directory."
+
+    defined_bin_edges = TOML.parsefile(bin_edge_fn)
+    for (k, v) in defined_bin_edges
+        rme_icc = load_rme_cover(dataset, gbr_gpkg, Matrix(stack(v)'))
+        icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
+        try
+            savecube(icc, joinpath(output_path, "$(k).nc"), driver=:netcdf)
+        catch err
+            if err isa ArgumentError
+                @info "File appears to already exist or cannot be written to."
+            end
         end
     end
 
