@@ -174,6 +174,67 @@ For example, to downscale RME data for the Moore cluster defined by a geopackage
 (rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/rme_dataset ./Moore.gpkg ./coral_cover.nc
 ```
 
+A set of initial cover files can be created using a TOML file:
+
+```console
+(rrap-dg) $ rrapdg coral-cover downscale-icc [rrap-dg datapackage path] [target geopackage] [output directory] [TOML file]
+```
+
+The output path is assumed to exist.
+
+```console
+(rrap-dg) $ rrapdg coral-cover bin-edge-icc C:/example/rrapdg ./Moore.gpkg ./icc_files ./bin_edges.toml
+```
+
+This will create a set of netCDFs in the `icc_files` directory using the bin edges defined
+in the TOML file.
+
+The format of the TOML file is:
+
+```TOML
+name_of_file = [
+    [values, for, each, size class],
+	[rows, are, functional, groups],
+	[cols, are size, classes]
+]
+```
+
+Note that ReefMod represents arborescent Acropora, whereas CoralBlocks does not.
+Hence the first line is set to 0.0.
+
+A full example:
+
+```TOML
+bin_edge_1 = [
+	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 100.0, 150.0],
+	[5.0, 7.5, 10.0, 20.0, 35.0, 50.0, 100.0],
+	[5.0, 7.5, 10.0, 15.0, 20.0, 40.0, 50.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 50.0, 100.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 50.0, 100.0]
+]
+
+bin_edge_2 = [
+	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+	[4.0, 7.5, 10.0, 20.0, 40.0, 100.0, 150.0],
+	[4.0, 7.5, 10.0, 20.0, 35.0, 50.0, 100.0],
+	[4.0, 7.5, 10.0, 15.0, 20.0, 40.0, 50.0],
+	[4.0, 7.5, 10.0, 20.0, 40.0, 50.0, 100.0],
+	[4.0, 7.5, 10.0, 20.0, 40.0, 50.0, 100.0]
+]
+
+bin_edge_3 = [
+	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 100.0, 100.0],
+	[5.0, 7.5, 10.0, 20.0, 35.0, 50.0, 120.0],
+	[5.0, 7.5, 10.0, 15.0, 20.0, 40.0, 60.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 50.0, 110.0],
+	[5.0, 7.5, 10.0, 20.0, 40.0, 50.0, 120.0]
+]
+```
+
+Using the above will create files named `bin_edge_1`, `bin_edge_2`, ..., etc.
+
 ## Cyclone Mortality projections
 
 Generate Cyclone Mortality projections using data from
