@@ -10,16 +10,20 @@ Provides a single command-line interface to generate data sets for use with [ADR
 
 **Table of Contents**
 
-- [Installation](#installation)
-- [rrap-dg Data Packages](#rrap-dg-data-packages)
-- [Domain Template](#domain-template)
-- [Degree Heating Weeks](#degree-heating-weeks-dhw-projections)
-- [Initial Coral Cover](#initial-coral-cover)
-- [Cyclone Mortality](#cyclone-mortality-projections)
-- [Connectivity Data](#connectivity-data)
-- [Wave Data](#wave-data)
-- [Domain Clusters](#domain-clusters)
-- [License](#license)
+- [RRAP Data Generators](#rrap-data-generators)
+  - [Installation](#installation)
+    - [From PyPI (TODO)](#from-pypi-todo)
+    - [Dev version](#dev-version)
+    - [For Development](#for-development)
+  - [rrap-dg Data Packages](#rrap-dg-data-packages)
+  - [Domain Template](#domain-template)
+  - [Degree Heating Weeks (DHW) projections](#degree-heating-weeks-dhw-projections)
+  - [Initial Coral Cover](#initial-coral-cover)
+  - [Cyclone Mortality projections](#cyclone-mortality-projections)
+  - [Connectivity data](#connectivity-data)
+  - [Wave data](#wave-data)
+  - [Domain clusters](#domain-clusters)
+  - [License](#license)
 
 ## Installation
 
@@ -82,7 +86,7 @@ The data package should be named with the following convention:
 
 An example for a hypothetical Moore dataset:
 
-```
+```bash
 Moore_rrapdg_2023-01-24
 │   datapackage.json
 │   README.md
@@ -135,13 +139,13 @@ This work was ported to Python from the original MATLAB developed by Dr. Veroniq
 Usage:
 
 ```console
-(rrap-dg) $ rrapdg dhw generate [input data directory] [output directory] [optional settings...]
+(rrap-dg) $ rrapdg dhw generate [cluster name] [input data directory] [output directory] [optional settings...]
 ```
 
 For example, with default values shown for optional settings:
 
 ```console
-(rrap-dg) $ rrapdg dhw generate C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
+(rrap-dg) $ rrapdg dhw generate Moore C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
 ```
 
 Note that the output directory is assumed to already exist.
@@ -149,16 +153,18 @@ Note that the output directory is assumed to already exist.
 ## Initial Coral Cover
 
 Initial coral cover data is downscaled from ReefMod Engine (RME) data.
-The current process is compatible with RME v1.10.18
+The current process is compatible with ReefMod or RME v1.0.x datasets or the rrap-dg
+data package.
 
 ```console
-(rrap-dg) $ rrapdg coral-cover downscale-icc [reefmod engine datapackage path] [target geopackage] [output path]
+(rrap-dg) $ rrapdg coral-cover downscale-icc [rrap-dg datapackage path] [target geopackage] [output path]
 ```
 
 For example, to downscale RME data for the Moore cluster defined by a geopackage:
 
 ```console
-(rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/RME_v1 ./Moore.gpkg ./coral_cover.nc
+(rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/rrapdg ./Moore.gpkg ./coral_cover.nc
+(rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/rme_dataset ./Moore.gpkg ./coral_cover.nc
 ```
 
 ## Cyclone Mortality projections
