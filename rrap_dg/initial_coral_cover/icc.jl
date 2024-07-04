@@ -21,7 +21,9 @@ using
     Distributions,
     Statistics
 
+import ArchGDAL as AG
 import GeoDataFrames as GDF
+import GeoDataFrames.GeoInterface as GI
 import YAXArrays.DD: At
 
 
@@ -62,11 +64,68 @@ function _convert_abs_to_k(
     return coral_cover
 end
 
+"""
+    _get_id_dir(dpkg_path::String)::String
+
+Return directory holding reef id lists.
+"""
+function _get_id_dir(dpkg_path::String)::String
+    if isdir(joinpath(dpkg_path, "spatial"))
+        # Old rrap-dg data package
+        return joinpath(dpkg_path, "spatial")
+    end
+
+    if isdir(joinpath(dpkg_path, "data_files"))
+        # ReefMod or RME dataset
+        return joinpath(dpkg_path, "data_files", "id")
+    end
+
+    error("Unknown directory structure.")
+end
 
 """
-    load_rme_gpkg(data_path::String, site_data::DataFrame)::YAXArray
+    _get_gbr_gpkg(dpkg_path::String)::String
 
-Load GBR geopackage associated with RME (v1.0.18) with precomputed/packaged area and
+Return path to GBR-wide geospatial data.
+"""
+function _get_gbr_gpkg(dpkg_path::String)::String
+    if isdir(joinpath(dpkg_path, "spatial"))
+        # Old rrap-dg data package
+        return joinpath(dpkg_path, "spatial", "reefmod_gbr.gpkg")
+    end
+
+    if isdir(joinpath(dpkg_path, "data_files"))
+        # ReefMod or RME dataset
+        return joinpath(dpkg_path, "data_files", "region", "reefmod_gbr.gpkg")
+    end
+
+    error("Unknown directory structure.")
+end
+
+"""
+    _get_icc_dir(dpkg_path::String)::String
+
+Return directory holding initial coral cover data.
+"""
+function _get_icc_dir(dpkg_path::String)::String
+    if isdir(joinpath(dpkg_path, "coral_cover"))
+        # Old rrap-dg data package
+        return joinpath(dpkg_path, "coral_cover")
+    end
+
+    if isdir(joinpath(dpkg_path, "data_files"))
+        # ReefMod or RME dataset
+        return joinpath(dpkg_path, "data_files", "initial")
+    end
+
+    error("Unknown directory structure.")
+end
+
+
+"""
+    load_gbr_gpkg(data_path::String, site_data::DataFrame)::YAXArray
+
+Load GBR geopackage associated with RME (v1.0.x) with precomputed/packaged area and
 \$k\$ values.
 
 # Arguments
@@ -75,9 +134,9 @@ Load GBR geopackage associated with RME (v1.0.18) with precomputed/packaged area
 # Returns
 YAXArray[locs, species]
 """
-function load_rme_gpkg(rrapdg_dpkg::String)
+function load_gbr_gpkg(data_dir::String)
     id_list = CSV.read(
-        joinpath(rrapdg_dpkg, "spatial", "id_list_2023_03_30.csv"),
+        joinpath(_get_id_dir(data_dir), "id_list_2023_03_30.csv"),
         DataFrame;
         header=false,
         comment="#",
@@ -85,8 +144,15 @@ function load_rme_gpkg(rrapdg_dpkg::String)
 
     # Re-order spatial data to match RME dataset
     # MANUAL CORRECTION
-    gbr_data = GDF.read(joinpath(rrapdg_dpkg, "spatial", "reefmod_gbr.gpkg"))
-    gbr_data[gbr_data.LABEL_ID .== "20198", :LABEL_ID] .= "20-198"
+    gbr_data = GDF.read(_get_gbr_gpkg(data_dir))
+
+    try
+        gbr_data[gbr_data.LABEL_ID .== "20198", :LABEL_ID] .= "20-198"
+    catch
+        gbr_data[gbr_data.RME_GBRMPA_ID .== "20198", :RME_GBRMPA_ID] .= "20-198"
+        gbr_data[!, :LABEL_ID] = gbr_data.RME_GBRMPA_ID
+    end
+
     id_order = [first(findall(x .== gbr_data.LABEL_ID)) for x in string.(id_list[:, 1])]
     gbr_data = gbr_data[id_order, :]
 
@@ -102,7 +168,6 @@ function load_rme_gpkg(rrapdg_dpkg::String)
     return gbr_data
 end
 
-
 """
     load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
 
@@ -115,8 +180,8 @@ Load mean of initial covers from ReefMod Engine datasets (v1.0.18).
 # Returns
 YAXArray[locs, species]
 """
-function load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
-    icc_path = joinpath(rrapdg_dpkg, "coral_cover")
+function load_rme_cover(dataset::String, gbr_gpkg::DataFrame)::YAXArray
+    icc_path = _get_icc_dir(dataset)
 
     # Identify coral cover files with known prefix pattern
     valid_files = filter(isfile, readdir(icc_path; join=true))
@@ -128,7 +193,11 @@ function load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
 
     # Shape is locations, scenarios, species
     # 20 is the known number of scenarios.
-    loc_ids = gbr_gpkg.LABEL_ID
+    loc_ids = try
+        gbr_gpkg.LABEL_ID
+    catch
+        gbr_gpkg.RME_LABEL_ID
+    end
     icc_data = zeros(length(loc_ids), 20, length(icc_files))
     for (i, fn) in enumerate(icc_files)
         icc_data[:, :, i] = Matrix(
@@ -168,11 +237,12 @@ function load_rme_cover(rrapdg_dpkg::String, gbr_gpkg::DataFrame)::YAXArray
         (
             Dim{:species}(1:(length(icc_files) * 6)),
             Dim{:locs}(loc_ids)
-            # Dim{:scenarios}(1:20)
         ),
         icc_data
     )
 end
+
+# intersects(geomtrait(a), geomtrait(b), a, b)
 
 """
     downscale_icc(init_cc::NamedDimsArray, large_ds::DataFrame, small_ds::DataFrame)::Matrix{Float64}
@@ -189,15 +259,6 @@ Matches locations for a reef by their spatial intersect with a smaller spatial l
 
 # Returns
 Cover [species ⋅ location] relative to k area.
-
-
-    downscale_icc(rrapdg_dpkg::String, output_path::String)::Nothing
-
-Downscale initial coral covers from ReefMod Engine and export to provided output path.
-
-# Arguments
-- `rrapdg_dpkg` : Path to rrap-dg data package
-- `output_path` : Path to export to resulting netCDF to
 """
 function downscale_icc(
     init_cc::YAXArray,
@@ -205,12 +266,8 @@ function downscale_icc(
     small_ds::DataFrame
 )::YAXArray
     # Find locations in larger spatial dataset that intersect with smaller dataset
-    # TODO: Constrain search to just the area represented by the smaller domain.
-    #       Currently this loops over all locations, many of which will be outside
-    #       the target area.
-    match_ids = unique(
-        vcat([findall(GDF.intersects(large_ds.geom, [g])) for g in small_ds.geom]...)
-    )
+    # matching by Reef UNIQUE ID
+    match_ids = in.(large_ds.UNIQUE_ID, Ref(small_ds.UNIQUE_ID))
 
     # Create named ids for functional groups
     n_classes = 6
@@ -269,42 +326,32 @@ function downscale_icc(
 
     return target_init_cover
 end
-function downscale_icc(rrapdg_dpkg::String, target_cluster::String, output_path::String)::Nothing
-    rme_gpkg = load_rme_gpkg(rrapdg_dpkg)
-    rme_icc = load_rme_cover(rrapdg_dpkg, rme_gpkg)
 
-    target_gpkg = GDF.read(joinpath(rrapdg_dpkg, "spatial", "$(target_cluster).gpkg"))
+"""
+    downscale_icc(rme_dataset::String, target_gpkg::String, output_path::String)::Nothing
 
-    icc = downscale_icc(rme_icc, rme_gpkg, target_gpkg)
+Downscale initial coral covers from ReefMod Engine for a given spatial area and export to
+provided output path.
 
-    savecube(icc, output_path, driver=:netcdf)
+# Arguments
+- `rme_dataset` : Path to rrap-dg data package
+- `target_gpkg` : Path to geopackage file defining area of interest
+- `output_path` : Path to export to resulting netCDF to
+"""
+function downscale_icc(dataset::String, target_gpkg::String, output_path::String)::Nothing
+    gbr_gpkg = load_gbr_gpkg(dataset)
+    rme_icc = load_rme_cover(dataset, gbr_gpkg)
+    target_gpkg = GDF.read(target_gpkg)
+
+    icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
+
+    try
+        savecube(icc, output_path, driver=:netcdf)
+    catch err
+        if err isa ArgumentError
+            @info "File appears to already exist or cannot be written to."
+        end
+    end
 
     return nothing
 end
-
-# """
-#     export_icc(fp::String, icc::NamedDimsArray)::Nothing
-
-# Helper function to export initial coral covers.
-
-# # Arguments
-# - `fp` : path to file to write data to.
-# - `icc` : initial coral cover data
-# """
-# function export_icc(fp::String, icc::NamedDimsArray)::Nothing
-#     local ds::NCDataset = Dataset(fp, "c")
-#     try
-#         defDim(ds, "reef_siteid", size(icc, 2))
-#         defDim(ds, "species", size(icc, 1))
-#         reef_siteid = defVar(ds, "reef_siteid", String, ("reef_siteid",))
-#         reef_siteid[:] .= axiskeys(icc, :sites)
-#         covers = defVar(ds, "covers", Float32, ("species", "reef_siteid"))
-#         covers[:, :] .= icc
-#         close(ds)
-#     catch
-#         # Close handle if any error occurs, otherwise it will remain open and cause issues!
-#         close(ds)
-#     end
-
-#     return nothing
-# end
