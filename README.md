@@ -118,13 +118,20 @@ https://hdl.handle.net/102.100.100/481718
 
 ## Domain Template
 
-**TODO**
-
 Create an empty ADRIA Domain to be filled with data.
 
 ```console
 (rrap-dg) $ rrapdg template generate [directory]
 ```
+
+**TODO:** Package an ADRIA Domain with data from the M&DS data store.
+
+```console
+(rrap-dg) $ rrapdg template package [directory] [spec]
+```
+
+Where spec points to a json file defining handle IDs for each dataset to be downloaded
+from the M&DS data store.
 
 ## Degree Heating Weeks (DHW) projections
 
