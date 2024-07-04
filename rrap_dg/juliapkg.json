@@ -53,6 +53,10 @@
             "uuid": "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91",
             "version": "0.34.2"
         },
+        "TOML": {
+            "uuid": "fa267f1f-6049-4f14-aa54-33bafae1ed76",
+            "version": "1.0.3"
+        },
         "YAXArrays": {
             "uuid": "c21b50f5-aa40-41ea-b809-c0f5e47bfa5c",
             "version": "0.5.2"
