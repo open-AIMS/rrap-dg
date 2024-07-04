@@ -184,19 +184,23 @@ Usage:
 
 The output directory is assumed to already exist.
 
-## Connectivity data
+## RRAP M&DS data store interface
 
-Download connectivity data from M&DS datastore
+Download data from M&DS datastore
 
 ```console
-(rrap-dg) $ rrapdg connectivity download [output directory] [dataset id]
+(rrap-dg) $ rrapdg data_store download [dataset id] [output directory]
 ```
 
 For example, to download and save the dataset with id "102.100.100/602432" in the current directory:
 
 ```console
-(rrap-dg) $ rrapdg connectivity download . 102.100.100/602432
+(rrap-dg) $ rrapdg data_store download 102.100.100/602432 .
 ```
+
+Semantically, the command is to download from a *source* to a *destination*.
+
+**TODO: Uploading/submitting datasets.**
 
 ## Wave data
 
