@@ -20,7 +20,7 @@ Provides a single command-line interface to generate data sets for use with [ADR
   - [Degree Heating Weeks (DHW) projections](#degree-heating-weeks-dhw-projections)
   - [Initial Coral Cover](#initial-coral-cover)
   - [Cyclone Mortality projections](#cyclone-mortality-projections)
-  - [Connectivity data](#connectivity-data)
+  - [RRAP M\&DS data store interface](#rrap-mds-data-store-interface)
   - [Wave data](#wave-data)
   - [Domain clusters](#domain-clusters)
   - [License](#license)
@@ -118,13 +118,20 @@ https://hdl.handle.net/102.100.100/481718
 
 ## Domain Template
 
-**TODO**
-
 Create an empty ADRIA Domain to be filled with data.
 
 ```console
 (rrap-dg) $ rrapdg template generate [directory]
 ```
+
+**TODO:** Package an ADRIA Domain with data from the M&DS data store.
+
+```console
+(rrap-dg) $ rrapdg template package [directory] [spec]
+```
+
+Where spec points to a json file defining handle IDs for each dataset to be downloaded
+from the M&DS data store.
 
 ## Degree Heating Weeks (DHW) projections
 
@@ -189,13 +196,13 @@ The output directory is assumed to already exist.
 Download data from M&DS datastore
 
 ```console
-(rrap-dg) $ rrapdg data_store download [dataset id] [output directory]
+(rrap-dg) $ rrapdg data-store download [dataset id] [output directory]
 ```
 
 For example, to download and save the dataset with id "102.100.100/602432" in the current directory:
 
 ```console
-(rrap-dg) $ rrapdg data_store download 102.100.100/602432 .
+(rrap-dg) $ rrapdg data-store download 102.100.100/602432 .
 ```
 
 Semantically, the command is to download from a *source* to a *destination*.
