@@ -1,14 +1,12 @@
 from typing import Sequence
 
 import numpy as np
-import netCDF4
 import xarray as xr
 
 from scipy.stats import genextreme as gev
 from scipy.stats import norm
 from scipy.optimize import curve_fit
-from shapely.geometry import Polygon, Point, MultiPoint
-from shapely.ops import nearest_points
+from shapely.geometry import Polygon, Point
 
 
 def gauss(x, amp, mu, sigma):
@@ -75,8 +73,10 @@ def get_closest_data(
 
     # Handle datasets with time dimension
     if len(dhw.shape) > 2:
+        # WARNING: requires >3.11 Python
         return dhw[:, *ind].to_dataset(name="CRS_DHW")
 
+    # WARNING: requires >3.11 Python
     return dhw[*ind].to_dataset(name="CRS_DHW")
 
 
