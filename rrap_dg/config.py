@@ -18,24 +18,24 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """
-
-    Uses the Pydantic settings management to read settings from defaults/the
+    """Uses the Pydantic settings management to read settings from defaults/the
     environment.
 
-    Returns:
-        Settings: The instantiated settings object.
+    Returns
+    -------
+    Settings
+        The instantiated settings object.
     """
     return Settings()
 
 
-def get_provena_client(settings: Optional[Settings]=None) -> ProvenaClient:
-    """
+def get_provena_client(settings: Optional[Settings] = None) -> ProvenaClient:
+    """Returns an authorised provena client ready to interact with the M&DS IS.
 
-    Returns an authorised provena client ready to interact with the M&DS IS.
-
-    Returns:
-        ProvenaClient: The instantiated and authenticated client.
+    Returns
+    -------
+    ProvenaClient
+        The instantiated and authenticated client.
     """
     _settings = settings if settings else get_settings()
     config = Config(
