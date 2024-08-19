@@ -38,7 +38,8 @@ dependencies = [
     "juliacall",
     "juliapkg",
     "datapackage",
-    "mdsisclienttools"
+    "provenaclient",
+    "pydantic[dotenv]==1.10.17"
 ]
 dynamic = ["version"]
 
