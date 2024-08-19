@@ -2,11 +2,12 @@
 
 Provides a single command-line interface to generate data sets for use with [ADRIA](https://github.com/open-AIMS/ADRIA.jl) and the RRAP program.
 
-
 [![PyPI - Version](https://img.shields.io/pypi/v/rrap-dg.svg)](https://pypi.org/project/rrap-dg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rrap-dg.svg)](https://pypi.org/project/rrap-dg)
 
------
+# Warning: requires Python >= 3.11 
+
+---
 
 **Table of Contents**
 
@@ -43,7 +44,6 @@ pip install git+https://github.com/open-AIMS/rrap-dg
 
 ### For Development
 
-
 Clone the repository, and navigate to the project folder.
 
 ```bash
@@ -73,6 +73,39 @@ Run the help command to trigger the setup.
 ```bash
 (rrap-dg) $ rrapdg --help
 ```
+
+## Python venv setup
+
+Alternatively, you can use a traditional python venv. For example
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+## Overriding Default Settings
+
+This project uses Pydantic's `BaseSettings` to manage configuration. While default values are provided, you can easily override these settings using a `.env` file.
+
+### Creating a .env File
+
+1. Create a file named `.env` in the root directory of the project.
+2. Add your custom settings to this file using the following format, noting all values are optional:
+
+```
+PROVENA_DOMAIN=your.provena.domain.com
+PROVENA_REALM_NAME=provena
+PROVENA_CLIENT_ID=automated-access
+```
+
+### Available Settings
+
+The following settings can be overridden:
+
+- `PROVENA_DOMAIN`: The Provena deployment to target (default: "mds.gbrrestoration.org")
+- `PROVENA_REALM_NAME`: The Keycloak realm name (default: "rrap")
+- `PROVENA_CLIENT_ID`: The Keycloak client ID (default: "automated-access")
 
 ## rrap-dg Data Packages
 
@@ -266,7 +299,7 @@ For example, to download and save the dataset with id "102.100.100/602432" in th
 (rrap-dg) $ rrapdg data-store download 102.100.100/602432 .
 ```
 
-Semantically, the command is to download from a *source* to a *destination*.
+Semantically, the command is to download from a _source_ to a _destination_.
 
 **TODO: Uploading/submitting datasets.**
 
@@ -293,6 +326,7 @@ Adaptive Differential Evolution (`adaptive_de_rand_1_bin_radiuslimited()` in
 
 The method reports a "Best candidate", the _floor_ of which indicates the identified
 optimal number of clusters.
+
 
 ## License
 
