@@ -190,6 +190,8 @@ For example, with default values shown for optional settings:
 
 Note that the output directory is assumed to already exist.
 
+The expected data package are detailed [here](https://github.com/open-AIMS/rrap-dg?tab=readme-ov-file#rrap-dg-data-packages)
+
 ## Initial Coral Cover
 
 Initial coral cover data is downscaled from ReefMod Engine (RME) data.
