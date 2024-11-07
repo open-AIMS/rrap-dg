@@ -1,0 +1,12 @@
+{
+  "datasets": [
+    {
+      "id": "UseCorrectIDNumber",
+      "output_dir": "test"
+    },
+    {
+      "id": "UseCorrectIDNumber",
+      "output_dir": "test2"
+    }
+  ]
+}
