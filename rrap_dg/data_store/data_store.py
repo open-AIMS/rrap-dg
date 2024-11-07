@@ -1,22 +1,29 @@
 import typer
-from rrap_dg.config import get_provena_client
-from asyncio import run
+from rrap_dg.utils import download_data
 
 app = typer.Typer()
 
-
+# Define CLI command using download_data
 @app.command(help="Download data from RRAP M&DS Data Store by handle id.")
-def download(handle_id: str, dest: str) -> None:
-    """Download data from the RRAP M&DS data store using a handle id.
+def download(handle_id: str = typer.Argument(...), dest: str = typer.Argument(...)) -> None:
+    """
+    Download data by handle ID to the specified destination directory.
 
     Parameters
     ----------
-    dest: str, output location of downloaded connectivity matrices
-    handle_id: str, dataset id of the connectivity matrices
+    handle_id : str
+        The ID of the dataset to download.
+    dest : str
+        The destination directory to save the downloaded data.
     """
-    provena = get_provena_client()
-    run(
-        provena.datastore.io.download_all_files(
-            destination_directory=dest, dataset_id=handle_id
-        )
-    )
+    try:
+        print(f"Received handle_id: {handle_id}, dest: {dest}")
+        download_data(handle_id, dest)
+        print(f"Successfully downloaded data with handle ID '{handle_id}' to '{dest}'.")
+
+    except FileNotFoundError:
+        print(f"Error: The destination directory '{dest}' was not found.")
+    except PermissionError:
+        print(f"Error: Permission denied to write to '{dest}'. Check your permissions.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
