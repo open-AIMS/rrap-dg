@@ -40,8 +40,7 @@ def download_data(handle_id: str, dest: str) -> None:
 
     except ValueError as ve:
         print(
-            f"ValueError: {
-              ve}. Check if the handle_id or destination path is correct."
+            f"ValueError: {ve}. Check if the handle_id or destination path is correct."
         )
         raise
 
