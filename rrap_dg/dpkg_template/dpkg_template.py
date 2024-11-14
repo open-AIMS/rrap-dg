@@ -3,10 +3,12 @@ from rrap_dg.dpkg_template.utils import *
 
 app = typer.Typer()
 
+
 @app.command(help="Create empty ADRIA Domain data package")
 def generate(template_path: str) -> None:
-    """
-    Generate the ADRIA Domain data package structure at the specified template path.
+    """Generate the ADRIA Domain data package structure
+
+    This function generates an empty data package structure at the specified template path.
 
     Parameters
     ----------
@@ -19,24 +21,28 @@ def generate(template_path: str) -> None:
     except Exception as e:
         print(f"Error generating package structure in {template_path}: {e}")
 
-@app.command(help="Create ADRIA Domain data package pre-filling with data from data store")
-def package(template_path: str, spec: str) -> None:
-    """
-    Create an ADRIA Domain data package, filling it with data from the data store based on a specification.
 
-    Parameters
-    ----------
-    template_path : str
-        Path where the final data package will be organized.
-    spec : str
-        Path to the JSON specification file listing datasets to download.
+@app.command(
+    help="Create ADRIA Domain data package pre-filling with data from data store"
+)
+def package(template_path: str, spec: str) -> None:
+    """Create an ADRIA Domain data package.
+
+    This function creates an empty package structure and fills it with data from the data store by mapping the folders.
+
+        Parameters
+        ----------
+        template_path : str
+            Path where the final data package will be organized.
+        spec : str
+            Path to the JSON specification file listing datasets to download.
     """
     print("Starting package creation...")
 
     # Generate directory structure if it doesn't exist
     if not os.path.exists(template_path):
         generate(template_path)
-    
+
     # Load specification data from the json
     try:
         spec_data = load_specification(spec)
@@ -49,7 +55,10 @@ def package(template_path: str, spec: str) -> None:
     try:
         os.makedirs(temp_download_dir, exist_ok=True)
     except Exception as e:
-        print(f"Error creating temporary download directory {temp_download_dir}: {e}")
+        print(
+            f"Error creating temporary download directory {
+              temp_download_dir}: {e}"
+        )
         return
 
     # Download datasets based on specification
@@ -58,7 +67,7 @@ def package(template_path: str, spec: str) -> None:
     except Exception as e:
         print(f"Error downloading datasets: {e}")
         return
-    
+
     # Move downloaded files to target folders within template_path
     try:
         move_files_to_target(template_path, temp_download_dir)
@@ -71,6 +80,9 @@ def package(template_path: str, spec: str) -> None:
         shutil.rmtree(temp_download_dir)
         print("Temporary download folder cleaned up.")
     except Exception as e:
-        print(f"Error cleaning up temporary download folder {temp_download_dir}: {e}")
+        print(
+            f"Error cleaning up temporary download folder {
+              temp_download_dir}: {e}"
+        )
 
     print("Package creation complete.")

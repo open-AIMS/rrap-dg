@@ -1,9 +1,1 @@
-{
-    "datasets": [
-      {
-        "id": "123566",
-        "output_dir": "test"
-      }
-    ]
-  }
-  
+{"datasets": [{"id": "123566", "output_dir": "test"}]}
