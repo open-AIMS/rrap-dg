@@ -1,0 +1,7 @@
+[[datasets]]
+id = "12345"
+output_dir = "test"
+
+[[datasets]]
+id = "12345"
+output_dir = "test2"

@@ -39,7 +39,8 @@ dependencies = [
     "juliapkg",
     "datapackage",
     "provenaclient",
-    "pydantic[dotenv]==1.10.17"
+    "pydantic[dotenv]==1.10.17",
+    "toml==0.10.2"
 ]
 dynamic = ["version"]
 
