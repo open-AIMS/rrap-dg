@@ -6,7 +6,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 
 @patch("rrap_dg.utils.get_provena_client")
 def test_download_data_function(mock_get_client, get_handle_id):
-    """Test the download_data function to ensure it calls Provena's download_all_files."""
+    """Test to download dataset by calling Provena's download_all_files function."""
     from rrap_dg.utils import download_data
 
     mock_client = MagicMock()

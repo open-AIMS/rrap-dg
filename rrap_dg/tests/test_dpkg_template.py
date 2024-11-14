@@ -6,16 +6,12 @@ from rrap_dg.main import app
 
 
 def test_generate_structure(cli_runner, tmp_path):
-    """Test the generate command to ensure it creates the required directory structure
-    and files.
-
-    """
+    """Test to generate directory structure and files."""
     result = cli_runner.invoke(app, ["template", "generate", str(tmp_path)])
 
     assert (
         result.exit_code == 0
-    ), f"Expected exit code 0, got {
-        result.exit_code}. Output: {result.output}"
+    ), f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
 
     # Verify the directory structure and files
     for folder in ["connectivity", "cyclones", "dhws", "spatial", "waves"]:
@@ -33,7 +29,7 @@ def test_generate_structure(cli_runner, tmp_path):
 
 @patch("rrap_dg.dpkg_template.utils.download_data")
 def test_package_with_spec(mock_download_data, cli_runner, tmp_path, get_test_file):
-    """est the package command with a spec file to ensure datasets download as specified."""
+    """Test to package and download datasets"""
     # Run the CLI command using the spec_file fixture
     spec_file = get_test_file
     result = cli_runner.invoke(
@@ -42,8 +38,7 @@ def test_package_with_spec(mock_download_data, cli_runner, tmp_path, get_test_fi
 
     assert (
         result.exit_code == 0
-    ), f"Expected exit code 0, got {
-        result.exit_code}. Output: {result.output}"
+    ), f"Expected exit code 0, got {result.exit_code}. Output: {result.output}"
     assert (
         mock_download_data.called
     ), "Expected download_data to be called for datasets."

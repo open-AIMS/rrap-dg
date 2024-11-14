@@ -25,8 +25,7 @@ def download_data(handle_id: str, dest: str) -> None:
     try:
         provena = get_provena_client()
         print(
-            f"Attempting to download dataset with ID: {
-              handle_id} to destination: {dest}"
+            f"Attempting to download dataset with ID: {handle_id} to destination: {dest}"
         )
 
         # Run download in an asynchronous context

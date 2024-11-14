@@ -25,17 +25,11 @@ def download(
     try:
         print(f"Received handle_id: {handle_id}, dest: {dest}")
         download_data(handle_id, dest)
-        print(
-            f"Successfully downloaded data with handle ID '{
-              handle_id}' to '{dest}'."
-        )
+        print(f"Successfully downloaded data with handle ID '{handle_id}' to '{dest}'.")
 
     except FileNotFoundError:
         print(f"Error: The destination directory '{dest}' was not found.")
     except PermissionError:
-        print(
-            f"Error: Permission denied to write to '{
-              dest}'. Check your permissions."
-        )
+        print(f"Error: Permission denied to write to '{dest}'. Check your permissions.")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")

@@ -55,10 +55,7 @@ def package(template_path: str, spec: str) -> None:
     try:
         os.makedirs(temp_download_dir, exist_ok=True)
     except Exception as e:
-        print(
-            f"Error creating temporary download directory {
-              temp_download_dir}: {e}"
-        )
+        print(f"Error creating temporary download directory {temp_download_dir}: {e}")
         return
 
     # Download datasets based on specification
@@ -80,9 +77,6 @@ def package(template_path: str, spec: str) -> None:
         shutil.rmtree(temp_download_dir)
         print("Temporary download folder cleaned up.")
     except Exception as e:
-        print(
-            f"Error cleaning up temporary download folder {
-              temp_download_dir}: {e}"
-        )
+        print(f"Error cleaning up temporary download folder {temp_download_dir}: {e}")
 
     print("Package creation complete.")
