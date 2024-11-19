@@ -157,7 +157,14 @@ Create an empty ADRIA Domain to be filled with data.
 (rrap-dg) $ rrapdg template generate [directory]
 ```
 
-**TODO:** Package an ADRIA Domain with data from the M&DS data store.
+Upgrade an old package previously uploaded to the M&DS data store, reformatting it to meet the new ADRIA requirements.
+
+
+```console
+(rrap-dg) $ rrapdg template upgrade [directory] [spec]
+```
+
+Package an ADRIA Domain with data from the M&DS data store.
 
 ```console
 (rrap-dg) $ rrapdg template package [directory] [spec]
