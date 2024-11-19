@@ -6,21 +6,14 @@ from asyncio import run
 def download_data(handle_id: str, dest: str) -> None:
     """Download data from the RRAP M&DS data store using a handle id.
 
-    Parameters
-    ----------
-    handle_id : str
-        Dataset ID of the connectivity matrices.
-    dest : str
-        Output location for downloaded connectivity matrices.
+    Args:
+        handle_id (str): Dataset ID
+        dest (str): Output location.
 
-    Raises
-    ------
-    ValueError
-        If an invalid handle ID or destination is provided.
-    ConnectionError
-        If there is an issue connecting to the Provena data store.
-    Exception
-        For other unexpected errors.
+    Raises:
+        ValueError: Invalid handle ID or destination provided.
+        ConnectionError: Connection issues.
+        Exception: Any unexpected errors during the download process.
     """
     try:
         provena = get_provena_client()
@@ -36,19 +29,15 @@ def download_data(handle_id: str, dest: str) -> None:
         )
 
         print(f"Download successful for dataset {handle_id} to {dest}")
-
     except ValueError as ve:
-        print(
-            f"ValueError: {ve}. Check if the handle_id or destination path is correct."
+        raise ValueError(
+            f"Invalid handle ID or destination path. Ensure that handle_id '{handle_id}' and destination '{dest}' are correct. Reason: {ve}"
         )
-        raise
-
-    except ConnectionError:
-        print(
-            "ConnectionError: Unable to connect to the Provena data store. Please check your connection."
+    except ConnectionError as ce:
+        raise ConnectionError(
+            f"Unable to connect to the Provena data store. Reason: {ce}"
         )
-        raise
-
     except Exception as e:
-        print(f"An unexpected error occurred during download: {e}")
-        raise
+        raise RuntimeError(
+            f"An unexpected error occurred while downloading dataset '{handle_id}' to '{dest}'. Reason: {e}"
+        )

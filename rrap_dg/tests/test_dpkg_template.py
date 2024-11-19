@@ -28,12 +28,12 @@ def test_generate_structure(cli_runner, tmp_path):
 
 
 @patch("rrap_dg.dpkg_template.utils.download_data")
-def test_package_with_spec(mock_download_data, cli_runner, tmp_path, get_test_file):
+def test_upgrade_with_spec(mock_download_data, cli_runner, tmp_path, get_test_file):
     """Test to package and download datasets"""
     # Run the CLI command using the spec_file fixture
     spec_file = get_test_file
     result = cli_runner.invoke(
-        app, ["template", "package", str(tmp_path), str(spec_file)]
+        app, ["template", "upgrade", str(tmp_path), str(spec_file)]
     )
 
     assert (

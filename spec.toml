@@ -1,7 +1,13 @@
 [[datasets]]
-id = "12345"
-output_dir = "test"
+id = "10378.1/1690304"
+output_dir = "datasets_test"
 
-[[datasets]]
-id = "12345"
-output_dir = "test2"
+[connectivity]
+id = "102.100.100/602432"
+
+[waves]
+#id = "102.100.100/635711"
+
+
+
+

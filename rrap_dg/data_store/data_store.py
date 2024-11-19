@@ -12,14 +12,16 @@ def download(
 ) -> None:
     """Download data using the handle ID.
 
-    This function downloads the data to the specified destination directory.
+    Downloads the data to the specified destination directory.
 
-        Parameters
-        ----------
-        handle_id : str
-            The ID of the dataset to download.
-        dest : str
-            The destination directory to save the downloaded data.
+    Args:
+        handle_id (str): ID of the dataset to download.
+        dest (str): destination directory to save the downloaded data.
+
+    Raises:
+        FileNotFoundError: destination directory not found.
+        PermissionError: no permission to write to the destination directory.
+        Exception: any unexpected errors not capture above during the download process.
     """
 
     try:
@@ -27,9 +29,17 @@ def download(
         download_data(handle_id, dest)
         print(f"Successfully downloaded data with handle ID '{handle_id}' to '{dest}'.")
 
-    except FileNotFoundError:
-        print(f"Error: The destination directory '{dest}' was not found.")
-    except PermissionError:
-        print(f"Error: Permission denied to write to '{dest}'. Check your permissions.")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            f"Error: The destination directory '{dest}' was not found. Reason: {e}"
+        )
+
+    except PermissionError as e:
+        raise PermissionError(
+            f"Error: Permission denied to write to the directory '{dest}'. Reason: {e}"
+        )
+
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        raise Exception(
+            f"An unexpected error occurred while accessing the directory '{dest}': {e}"
+        )
