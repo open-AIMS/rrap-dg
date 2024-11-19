@@ -42,25 +42,22 @@ def generate(
 ) -> None:
     """Produce Degree Heating Week projections for a given cluster.
 
-    Note: This process is very memory intensive (~20GB peak usage) and time consuming
-          (10s of minutes but generally < 1 hour).
+    This process is very memory intensive (~20GB peak usage) and time consuming
+    (10s of minutes but generally < 1 hour).
 
-    Parameters
-    ----------
-    cluster_name : str, name of geopackage file to use (typically same as reef cluster name)
-    input_loc : str, location of dataset
-    output_loc : str, output location of generated netCDFs
-    n_sims : int, number of members to generate
-    RCPs : str, of RCP scenarios to generate members for
-    gen_year : str, the time frame member projections should be
-        generated for (end exclusive). Defaults to (2025, 2100).
-
-    Notes
-    -----
+    Args:
+        cluster_name (str): Name of the geopackage file to use, typically
+            the same as the reef cluster name.
+        input_loc (str): Location of the dataset.
+        output_loc (str): Output location for the generated netCDFs.
+        n_sims (int): Number of members to generate.
+        RCPs (str): RCP scenarios to generate members for
+        gen_year (str): The time frame member projections should be
+            generated for (end exclusive). Defaults to (2025, 2100).
+    Notes:
     Some acronyms used throughout.
-
-    CRW : Coral Reef Watch
-    RCP : Representative Concentration Pathway
+        - CRW: Coral Reef Watch
+        - RCP: Representative Concentration Pathway
     """
     # TODO: Leverage metadata in datapackage.json to identify all data files
     #       Currently only the cluster name is extracted.
@@ -75,9 +72,9 @@ def generate(
     hist_dhw_data = hist_dhw_data.rio.write_crs(crs_code)
 
     # Read spatial data and ensure CRS matches
-    cluster_poly = gpd.read_file(pj(input_loc, "spatial", f"{cluster_name}.gpkg")).to_crs(
-        crs_code
-    )
+    cluster_poly = gpd.read_file(
+        pj(input_loc, "spatial", f"{cluster_name}.gpkg")
+    ).to_crs(crs_code)
 
     # Clunky way of getting the scale factor
     # There's probably a better way
@@ -118,7 +115,9 @@ def generate(
     # gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
 
     # Load yearly DHW data for cluster
-    recom_files = glob(pj(input_loc, "RECOM", cluster_name, f"*{cluster_name}*_*_dhw*.nc"))
+    recom_files = glob(
+        pj(input_loc, "RECOM", cluster_name, f"*{cluster_name}*_*_dhw*.nc")
+    )
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
 
