@@ -24,16 +24,14 @@ def gauss(x, amp, mu, sigma):
 def fit_gauss(x, y):
     """Fit a gaussian curve and return optimal parameters.
 
-    Parameters
-    ----------
-    x : time
-    y : data
+    Args:
+        x: time
+        y: data
 
-    Returns
-    -------
-    tuple[float, float, float], amplitude, mean, standard deviation
-        Optimal values for the parameters so that the sum of the
-        squared residuals of f(xdata, *popt) - ydata is minimized.
+    Returns:
+        tuple[float, float, float]: amplitude, mean, standard deviation.
+            Optimal values for the parameters so that the sum of the squared
+            residuals of f(xdata, *popt) - ydata is minimized.
     """
     # Create an initial guess
     mu, sigma = norm.fit(y)
@@ -86,14 +84,12 @@ def extract_DHW_pattern(recom_files: Sequence[str]):
     The full cluster spatial average is taken from the RECOM pattern.
     For each site, the closest grid cell DHW pattern variation from the mean is taken.
 
-    Parameters
-    ----------
-    recom_files : list[str], of file locations for RECOM data in netCDF format.
+    Args:
+        recom_files (list[str]): List of file locations for RECOM data in netCDF format.
 
-    Returns
-    -------
-    tuple[np.array, np.array, np.array, np.array],
-        dhw_pattern, mean_dhw_pattern, cluster_lon, cluster_lat
+    Returns:
+        tuple[np.array, np.array, np.array, np.array]:
+            dhw_pattern, mean_dhw_pattern, cluster_lon, cluster_lat.
     """
     n_files = len(recom_files)
     with xr.open_dataset(recom_files[0]) as nc:
@@ -121,18 +117,16 @@ def create_max_DHW(
     Extracts historic data and concatenates with projected data for a
     specified projection time frame.
 
-    Parameters
-    ----------
-    cluster_dhw : historic DHW data for cluster
-    proj_cluster_dhw : projected DHW data (e.g., MIROC5)
-    proj_range : year range of projected data (end exclusive)
+    Args:
+        cluster_dhw: Historic DHW data for cluster.
+        proj_cluster_dhw: Projected DHW data (e.g., MIROC5).
+        proj_range: Year range of projected data (end exclusive).
 
-    Returns
-    -------
-    tuple[np.array, np.array, np.array],
-        - historic max DHW for location
-        - timeframe
-        - combined max DHW across hist/projected time periods
+    Returns:
+        tuple[np.array, np.array, np.array]:
+            - Historic max DHW for location.
+            - Timeframe.
+            - Combined max DHW across hist/projected time periods.
     """
     # Find max historical DHW by grouping each unique year and getting the max
     hist_max_DHW = (
@@ -153,21 +147,18 @@ def detrended_max_DHW(
     gen_year_tf: Sequence[int],
     proj_range: tuple[int],
 ):
-    """
-    Retrieves the detrended DHW distribution for a given location.
+    """Retrieve the detrended DHW distribution for a given location.
 
-    Parameters
-    ----------
-    mean_hist_dhw : historic DHW data
-    mean_proj_dhw : projected DHW data (e.g., MIROC5)
-    gen_year_tf : years of interest (to generate data for)
-    proj_range : year range of simulated projections (e.g., MIROC5)
+    Args:
+        mean_hist_dhw: Historic DHW data.
+        mean_proj_dhw: Projected DHW data (e.g., MIROC5).
+        gen_year_tf: Years of interest (to generate data for).
+        proj_range: Year range of simulated projections (e.g., MIROC5).
 
-    Returns
-    -------
-    tuple, dens_prob, max_DHW_detrend
-        - Generalized Extreme Value probability
-        - detrended maximum DHW
+    Returns:
+        tuple: dens_prob, max_DHW_detrend
+            - Generalized Extreme Value probability.
+            - Detrended maximum DHW.
     """
     hist_max_DHW, dhw_timeframe, combined_dhw_data = create_max_DHW(
         mean_hist_dhw, mean_proj_dhw, proj_range
