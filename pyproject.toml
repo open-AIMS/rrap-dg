@@ -40,7 +40,8 @@ dependencies = [
     "datapackage",
     "provenaclient",
     "pydantic[dotenv]==1.10.17",
-    "toml==0.10.2"
+    "toml==0.10.2",
+    "fuzzywuzzy==0.18.0"
 ]
 dynamic = ["version"]
 
