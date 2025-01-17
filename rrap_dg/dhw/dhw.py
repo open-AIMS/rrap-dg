@@ -118,7 +118,7 @@ def generate(
     # gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
 
     # Load yearly DHW data for cluster
-    recom_files = glob(pj(input_loc, "RECOM", cluster_name, f"*{cluster_name}*_*_dhw*.nc"))
+    recom_files = glob(pj(input_loc, "RECOM", f"*{cluster_name}*_*_dhw*.nc"))
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
 
@@ -290,7 +290,7 @@ def generate(
                         dhw[sim_i, site_i, yr_s] = dhw_r + spatialadj
                         continue
 
-                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97))
+                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97)) 
 
             # Make values > 0 as negative DHW is not possible.
             dhw = np.maximum(dhw, 0.0)
@@ -349,7 +349,7 @@ def generate(
             # Put the variables' values
             lon_ID[:] = c_lon
             lat_ID[:] = c_lat
-            reef_ID[:] = cluster_poly.loc[:, "reef_siteid"].to_numpy()
+            reef_ID[:] = cluster_poly.loc[:, "site_id"].to_numpy()
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
 

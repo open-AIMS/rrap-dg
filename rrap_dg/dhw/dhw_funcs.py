@@ -206,6 +206,7 @@ def detrended_max_DHW(
         # Use last few years for estimate
         # dens_prob[i] = gev.fit(d_i, floc=np.mean(d_i[:-30]), fscale=1.1)
         # floc=np.mean(d_i[:-20]), fscale=1.1, f0=-0.2
-        dens_prob[i] = gev.fit(d_i, f0=-0.6)
+        #dens_prob[i] = gev.fit(d_i, f0=-0.6)
+        dens_prob[i] = gev.fit(d_i, floc = 4.0, fscale =4.5)
 
     return dens_prob, max_DHW_detrend
