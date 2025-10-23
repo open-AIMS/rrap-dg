@@ -329,6 +329,35 @@ Adaptive Differential Evolution (`adaptive_de_rand_1_bin_radiuslimited()` in
 The method reports a "Best candidate", the _floor_ of which indicates the identified
 optimal number of clusters.
 
+## GBR-wide Domain Data
+
+Format previously existing DHW and connectivity data into the format used in ADRIA.jl
+domains.
+
+### DHWs
+
+The only supported DHW dataset is the [statistically downscaled Climate projections
+(CMIP6)](https://data.mds.gbrrestoration.org/dataset/102.100.100/705397?view=overview) that
+were aligned with the canonical reefs geopackage.
+
+```console
+(rrap-dg) $ rrapdg dhw format [DHW path] [output directory path] [optional settings...]
+```
+For example, with default settings
+```console
+(rrap-dg) $ rrapdg dhw format "C:/example/dhws" "C:/temp" "2.6 4.5 7.0 8.5" "2025 2099"
+```
+
+### Connectivity
+
+The only supported connectivity dataset is the connectivity files contained in the [ReefMod
+Engine](https://data.mds.gbrrestoration.org/dataset/102.100.100/708667?view=overview) and
+requires the [canonical reefs geopackage](https://github.com/gbrrestoration/canonical-reefs)
+to align locations and label dimensions.
+
+```console
+(rrap-dg) $ rrapdg connectivity format [ReefMod Engine Path] [Canonical Reefs Path] [Output Directory path]
+```
 
 ## License
 
