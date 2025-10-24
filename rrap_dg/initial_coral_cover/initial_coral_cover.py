@@ -24,3 +24,12 @@ def bin_edge_icc(
     bin_edge_file: str
 ) -> None:
     jl.downscale_icc(rrapdg_dpkg_path, target_cluster, output_path, bin_edge_file)
+
+@app.command(help="Create initial coral cover netCDFs with custom bin edges for the entire GBR")
+def format_icc(
+    rme_path: str,
+    canonical_path: str,
+    output_path: str
+):
+    jl.format_rme_icc(rme_path, canonical_path, output_path)
+    return None

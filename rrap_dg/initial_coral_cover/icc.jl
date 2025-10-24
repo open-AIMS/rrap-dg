@@ -130,12 +130,33 @@ function _get_icc_dir(dpkg_path::String)::String
         return joinpath(dpkg_path, "coral_cover")
     end
 
+    if isdir(joinpath(dpkg_path, "data_files", "initial_csv"))
+
+        return joinpath(dpkg_path, "data_files", "initial_csv")
+    end
+
     if isdir(joinpath(dpkg_path, "data_files"))
         # ReefMod or RME dataset
         return joinpath(dpkg_path, "data_files", "initial")
     end
 
     error("Unknown directory structure.")
+end
+
+"""
+    _get_icc_cover_files(icc_dir::String)::Vector{String}
+
+Find all the initial coral cover files and return them as full paths.
+"""
+function _get_icc_cover_files(icc_dir::String)::Vector{String}
+    cover_pattern = r"coral_sp[1-6]_\d{4}\.csv"
+    files = filter(f -> occursin(cover_pattern, f), readdir(icc_dir))
+    if length(files) == 0
+        error("Unable to find initial cover files. Unkown directory structure.")
+    end
+    files = joinpath.(Ref(icc_dir), files)
+
+    return files
 end
 
 
@@ -402,6 +423,61 @@ function downscale_icc(dataset::String, target_gpkg::String, output_path::String
             end
         end
     end
+
+    return nothing
+end
+
+"""
+    _sort_icc_files(filenames::Vector{String})
+
+Sort the initial coral cover files to give ["coral_sp1_2023.csv", "coral_sp2_2023.csv", ...]
+"""
+function _sort_icc_files(filenames::Vector{String})
+    # Guarantee that the order of files is ["sp1", "sp2", "sp3", ...]
+    sorted_filenames = sort(
+        filenames, by = x -> parse(Int, match(r"sp(\d+)", x).captures[1])
+    )
+    @assert occursin("sp1", sorted_filenames[1]) &&
+            occursin("sp2", sorted_filenames[2]) &&
+            occursin("sp3", sorted_filenames[3]) &&
+            occursin("sp4", sorted_filenames[4]) &&
+            occursin("sp5", sorted_filenames[5]) &&
+            occursin("sp6", sorted_filenames[6])
+
+    return sorted_filenames
+end
+
+function format_rme_icc(rme_path::String, canonical_path::String, output_path::String)::Nothing
+    # Read initial coral cover csvs
+    icc_dir::String = _get_icc_dir(rme_path)
+    icc_files::Vector{String} = _get_icc_cover_files(icc_dir)
+    icc_files = _sort_icc_files(icc_files)
+    icc_csvs = [
+        CSV.read(icc_fn, DataFrame; comment="#", header=false)
+        for icc_fn in icc_files
+    ]
+
+    canonical_gpkg = GDF.read(canonical_path)
+
+    # Initial coral cover of shape [locations ⋅ repeats ⋅ functional group]
+    init_cover::Array{Float64} = zeros(
+        Float64, size(icc_csvs[1], 1), size(icc_csvs[1], 2) - 1, length(icc_csvs)
+    )
+
+    ordering_dict = Dict(id=>i for (i, id) in enumerate(canonical_gpkg.RME_GBRMPA_ID))
+    for (sp_idx, icc_csv) in enumerate(icc_csvs)
+        order_perm = [ordering_dict[id] for id in icc_csv[:, 1]]
+        init_cover[:, :, sp_idx] .= icc_csv[order_perm, 2:end]
+    end
+
+    init_cover = dropdims(mean(init_cover, dims=2), dims=2) ./ 100
+
+    dims = (
+        Dim{:species}(1:length(icc_csvs)),
+        Dim{:locations}(canonical_gpkg.UNIQUE_ID)
+    )
+
+    savecube(YAXArray(dims, init_cover'), output_path, driver=:netcdf)
 
     return nothing
 end
