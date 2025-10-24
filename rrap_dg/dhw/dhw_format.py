@@ -97,8 +97,9 @@ def format_single_rcp_dhw(
         lon_ID = nc_out.createVariable("longitude", "f8", ("locations",))
         lat_ID = nc_out.createVariable("latitude", "f8", ("locations",))
         time_ID = nc_out.createVariable("timesteps", "i4", ("timesteps",))
-        GBRMPA_ID = nc_out.createVariable("reef_siteid", str, ("locations",))
+        GBRMPA_ID = nc_out.createVariable("GBRMPA_ID", str, ("locations",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        location_ID = nc_out.createVariable("locations", str, ("locations",))
         dhw_ID = nc_out.createVariable(
             "dhw", "f8", ("model", "locations", "timesteps")
         )  # variable order flipped for consistency with MATLAB
@@ -134,6 +135,12 @@ def format_single_rcp_dhw(
         unique_ID.long_name = "unique id"
         unique_ID.standard_name = "unique_id"
 
+        # unique_id
+        location_ID.coordinates = "locations"
+        location_ID.units = ""
+        location_ID.long_name = "unique id"
+        location_ID.standard_name = "unique_id"
+
         # DHW data
         dhw_ID.coordinates = "timesteps locations members"
         dhw_ID.units = "DegC-week"
@@ -146,9 +153,9 @@ def format_single_rcp_dhw(
         time_ID[:] = list(range(timeframe[0], timeframe[1] + 1))
         GBRMPA_ID[:] = nc_handles[0].variables['LABEL_ID'][:]
         unique_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
+        location_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
 
         for (idx, nc_handle) in enumerate(nc_handles):
             dhw_ID[idx, :, :] = nc_handle.variables['dhw_max'][:, start_yr_idx:end_yr_idx + 1]
 
     return None
-

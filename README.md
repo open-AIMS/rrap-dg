@@ -345,7 +345,7 @@ were aligned with the canonical reefs geopackage.
 ```
 For example, with default settings
 ```console
-(rrap-dg) $ rrapdg dhw format "C:/example/dhws" "C:/temp" "2.6 4.5 7.0 8.5" "2025 2099"
+(rrap-dg) $ rrapdg dhw format "C:/example/dhws" "C:/temp" --rcps "2.6 4.5 7.0 8.5" --timeframe "2025 2099"
 ```
 
 ### Connectivity
