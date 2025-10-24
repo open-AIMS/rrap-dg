@@ -292,7 +292,7 @@ def generate(
                         dhw[sim_i, site_i, yr_s] = dhw_r + spatialadj
                         continue
 
-                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97)) 
+                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97))
 
             # Make values > 0 as negative DHW is not possible.
             dhw = np.maximum(dhw, 0.0)
@@ -356,7 +356,12 @@ def generate(
             dhw_ID[:] = dhw
 
 @app.command(help="Format Degree Heating Week datasets.")
-def format(source_dir: str, output_dir: str, rcps: str, timeframe: str):
+def format(
+        source_dir: str,
+        output_dir: str,
+        rcps: str = typer.Option("2.6 4.5 7.0 8.5"),
+        timeframe: str = typer.Option("2025 2099")
+) -> None:
     _timeframe = tuple(map(int, timeframe.split(" ")))
     rcps_tuple = tuple(rcps.split(" "))
     rcps_to_ssps = {"2.6": "ssp126", "4.5": "ssp245", "7.0": "ssp370", "8.5": "ssp585"}
