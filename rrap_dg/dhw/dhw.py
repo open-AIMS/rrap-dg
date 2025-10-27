@@ -18,8 +18,6 @@ import typer
 
 from rich.progress import track
 
-from .dhw_format import format_single_rcp_dhw
-
 from .dhw_funcs import (
     detrended_max_DHW,
     create_max_DHW,
@@ -354,29 +352,6 @@ def generate(
             reef_ID[:] = cluster_poly.loc[:, "site_id"].to_numpy()
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
-
-@app.command(help="Format Degree Heating Week datasets.")
-def format(
-        source_dir: str,
-        output_dir: str,
-        rcps: str = typer.Option("2.6 4.5 7.0 8.5"),
-        timeframe: str = typer.Option("2025 2099")
-) -> None:
-    _timeframe = tuple(map(int, timeframe.split(" ")))
-    rcps_tuple = tuple(rcps.split(" "))
-    rcps_to_ssps = {"2.6": "ssp126", "4.5": "ssp245", "7.0": "ssp370", "8.5": "ssp585"}
-    rcps_fn = {"2.6": "26", "4.5": "45", "7.0": "70", "8.5": "85"}
-
-    format_rcps = [rcps_fn[rcp] for rcp in rcps_tuple]
-    ssps = [rcps_to_ssps[rcp] for rcp in rcps_tuple]
-    search_paths = [pj(source_dir, f"*{ssp}*") for ssp in ssps]
-    netcdf_files = [glob(search_path) for search_path in search_paths]
-    output_fps = [pj(output_dir, f"dhwRCP{rcp}.nc") for rcp in format_rcps]
-
-    for (src_files, out_fp) in zip(netcdf_files, output_fps):
-        format_single_rcp_dhw(src_files, out_fp, _timeframe)
-
-    return None
 
 # if __name__ == "__main__":
 #     typer.run(generate_DHWs)

@@ -4,6 +4,7 @@ from  glob import glob
 
 import typer
 import numpy as np
+import pandas as pd
 
 def validate_location_agreement(dhw_nc_handles: list) -> None:
     unique_ids = dhw_nc_handles[0].variables['UNIQUE_ID'][:]
@@ -159,3 +160,27 @@ def format_single_rcp_dhw(
             dhw_ID[idx, :, :] = nc_handle.variables['dhw_max'][:, start_yr_idx:end_yr_idx + 1]
 
     return None
+
+"""Return a permutation that reorders the first list to match the second."""
+def reorder_location_perm(rme_order: list[str], canonical_order: list[str]) -> list[int]:
+    rme_id_to_index = {id_val: i for i, id_val in enumerate(rme_order)}
+    new_order_indices = [rme_id_to_index[id_val] for id_val in canonical_order]
+
+    return new_order_indices
+
+"""
+    format_connectivity_file(filepath: str, reorder: list[int], unique_ids : list[str]) -> pd.Dataframe:
+
+Add unique ids to columns and rows.
+"""
+def format_connectivity_file(
+    filepath: str,
+    reorder: list[int],
+    unique_ids : list[str]
+) -> pd.DataFrame:
+    connectivity = pd.read_csv(filepath, header=None, comment='#')
+    connectivity = connectivity.iloc[reorder, reorder]
+    connectivity.index = unique_ids
+    connectivity.columns = unique_ids
+
+    return connectivity
