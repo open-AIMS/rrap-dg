@@ -471,9 +471,17 @@ function format_rme_icc(rme_path::String, canonical_path::String, output_path::S
     end
 
     init_cover = dropdims(mean(init_cover, dims=2), dims=2) ./ 100
+    species_names = [
+        "arborescent Acropora",
+        "tabular Acropora",
+        "corymbose Acropora",
+        "corymbose non-Acropora",
+        "Small massives",
+        "Large massives"
+    ]
 
     dims = (
-        Dim{:species}(1:length(icc_csvs)),
+        Dim{:species}(species_names),
         Dim{:locations}(canonical_gpkg.UNIQUE_ID)
     )
 
