@@ -341,11 +341,11 @@ The only supported DHW dataset is the [statistically downscaled Climate projecti
 were aligned with the canonical reefs geopackage.
 
 ```console
-(rrap-dg) $ rrapdg dhw format [DHW path] [output directory path] [optional settings...]
+(rrap-dg) $ rrapdg GBR format-dhw [DHW path] [output directory path] [optional settings...]
 ```
 For example, with default settings
 ```console
-(rrap-dg) $ rrapdg dhw format "C:/example/dhws" "C:/temp" --rcps "2.6 4.5 7.0 8.5" --timeframe "2025 2099"
+(rrap-dg) $ rrapdg GBR format-dhw "C:/example/dhws" "C:/temp" --rcps "2.6 4.5 7.0 8.5" --timeframe "2025 2099"
 ```
 
 ### Connectivity
@@ -356,7 +356,16 @@ requires the [canonical reefs geopackage](https://github.com/gbrrestoration/cano
 to align locations and label dimensions.
 
 ```console
-(rrap-dg) $ rrapdg connectivity format [ReefMod Engine Path] [Canonical Reefs Path] [Output Directory path]
+(rrap-dg) $ rrapdg GBR format-connectivity [ReefMod Engine Path] [Canonical Reefs Path] [Output Directory path]
+```
+
+### Initial Coral Cover
+
+The only supported initial cover dataset file is the connectivity files contained in the [ReefMod
+Engine](https://data.mds.gbrrestoration.org/dataset/102.100.100/708667?view=overview).
+
+```console
+(rrap-dg) $ rrapdg GBR format-icc [ReefMod Engine Path] [Canonical Path] [Output Path]
 ```
 
 ## License
