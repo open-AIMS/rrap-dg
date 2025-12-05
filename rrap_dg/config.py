@@ -42,6 +42,6 @@ def get_provena_client(settings: Optional[Settings] = None) -> ProvenaClient:
         domain=_settings.provena_domain, realm_name=_settings.provena_realm_name
     )
     return ProvenaClient(
-        auth=DeviceFlow(config=config, client_id=_settings.provena_client_id),
+        auth=DeviceFlow(config, client_id=_settings.provena_client_id),
         config=config,
     )
