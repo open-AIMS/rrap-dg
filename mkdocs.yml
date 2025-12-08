@@ -1,5 +1,6 @@
 site_name: RRAP-DG
 site_description: AIMS-RRAP Data Generator
+use_directory_urls: false
 theme:
   name: material
 

@@ -49,7 +49,7 @@ handle = "10378.1/234567"
 path = "/local/path/to/rme_data"
 
 [options]
-rcps = "2.6 4.5 8.5"
+rcps = "2.6 4.5 7.0 8.5"
 timeframe = "2025 2060"
 ```
 
