@@ -1,17 +1,29 @@
 from .format_funcs import (
-    format_connectivity_file, 
+    format_connectivity_file,
     format_single_rcp_dhw,
-    reorder_location_perm, 
+    reorder_location_perm,
     format_connectivity_file
 )
 
+import os
+import json
 import geopandas as gpd
 import pandas as pd
 
 from os.path import join as pj
-from os.path import basename
+from os.path import basename, exists
 from glob  import glob
+import tempfile
+from typing import Optional
+from datetime import datetime
 from rrap_dg import PKG_PATH
+from rrap_dg.dpkg_template.dpkg_template import generate as generate_dpkg
+from rrap_dg.data_store.data_store import download as download_data
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 import typer
 import juliacall
@@ -21,7 +33,137 @@ jl.seval(f'include("{PKG_PATH}/initial_coral_cover/icc.jl")')
 
 app = typer.Typer()
 
+def _update_datapackage(
+    output_dir: str,
+    canonical_meta_path: Optional[str],
+    dhw_meta_path: Optional[str],
+    rme_meta_path: Optional[str],
+    timeframe: str
+):
+    dpkg_path = pj(output_dir, "datapackage.json")
+    if not exists(dpkg_path):
+        return
+
+    domain_name = basename(output_dir)
+    
+    # Base structure
+    dpkg = {
+        "name": domain_name,
+        "title": f"{domain_name} Domain",
+        "description": "Generated ADRIA Domain",
+        "version": "0.1.0",
+        "sources": [],
+        "simulation_metadata": {
+            "timeframe": list(map(int, timeframe.split(" ")))
+        },
+        "contributors": [],
+        "resources": [
+             {
+                "name": "connectivity",
+                "description": "Connectivity data for specific days across years, grouped by year",
+                "path": "connectivity",
+                "format": "csv"
+            },
+            {
+                "name": "spatial_data",
+                "description": "Spatial data of cluster.",
+                "path": f"spatial/{domain_name}.gpkg",
+                "format": "geopackage"
+            },
+            {
+                "name": "coral_cover",
+                "description": [
+                    "ReefModEngine initial coral cover data.",
+                    "The data is downscaled over sites according to the indicated available k area for each site, and exported in netCDF format.",
+                    "The values (0 to 1) that are relative to each site k area."
+                ],
+                "path": "spatial/coral_cover.nc",
+                "format": "netCDF"
+            },
+            {
+                "name": "DHWs",
+                "description": "Degree heating week data." if dhw_meta_path else "No data provided/available.",
+                "path": "DHWs" if dhw_meta_path else "",
+                "format": "netCDF"
+            },
+            {
+                "name": "waves",
+                "description": "No data provided/available.",
+                "path": "",
+                "format": "netCDF"
+            },
+            {
+                "name": "cyclones",
+                "description": "No data provided/available.",
+                "path": "",
+                "format": "netCDF"
+            }
+        ]
+    }
+
+    # Add num_locations to simulation_metadata
+    gpkg_path = pj(output_dir, "spatial", f"{domain_name}.gpkg")
+    if exists(gpkg_path):
+        try:
+            gdf = gpd.read_file(gpkg_path)
+            dpkg["simulation_metadata"]["num_locations"] = len(gdf)
+        except Exception as e:
+            print(f"Warning: Could not read geopackage at {gpkg_path} to determine num_locations. Error: {e}")
+
+    meta_files = {
+        "Canonical": canonical_meta_path,
+        "DHW": dhw_meta_path,
+        "RME": rme_meta_path
+    }
+
+    contributors = {}
+
+    for source_name, meta_path in meta_files.items():
+        if meta_path and exists(meta_path):
+            with open(meta_path, "r") as f:
+                try:
+                    meta = json.load(f)
+                    dataset_info = meta.get("dataset_info", {})
+                    
+                    # Add as source
+                    dpkg["sources"].append({
+                        "title": dataset_info.get("name", f"{source_name} Dataset"),
+                        "description": dataset_info.get("description", ""),
+                        "path": "",
+                        "handle": meta.get('associations', {}).get('data_custodian_id', '')
+                    })
+
+                    # Extract contributor/contact
+                    associations = meta.get("associations", {})
+                    contact = associations.get("point_of_contact")
+                    if contact:
+                        if contact not in contributors:
+                            contributors[contact] = {
+                                "title": contact.split("@")[0], # Fallback name
+                                "email": contact,
+                                "role": "author",
+                                "description": f"Point of contact for {source_name} dataset"
+                            }
+                        else:
+                            contributors[contact]["description"] += f", {source_name}"
+                    
+                    # Maybe append rights holder to contributors or separate field?
+                    rights_holder = dataset_info.get("rights_holder")
+                    if rights_holder:
+                         # Check if already added?
+                         pass
+
+                except json.JSONDecodeError:
+                    print(f"Warning: Could not decode metadata file at {meta_path}")
+
+    dpkg["contributors"] = list(contributors.values())
+
+    with open(dpkg_path, "w") as f:
+        json.dump(dpkg, f, indent=4)
+
+
 @app.command(help="Format Degree Heating Week datasets.")
+
 def format_dhw(
         source_dir: str,
         output_dir: str,
@@ -44,6 +186,8 @@ def format_dhw(
 
     return None
 
+
+
 @app.command(help="Format ReefMod Engine connectivity datasets.")
 def format_connectivity(
     rme_path: str,
@@ -57,6 +201,7 @@ def format_connectivity(
     connectivity_files = glob(connectivity_path)
 
     rme_id_list_path = pj(rme_data_path, "id", "id_list_*.csv")
+    print(rme_id_list_path)
     rme_id_file = glob(rme_id_list_path)[0]
     rme_ids = pd.read_csv(rme_id_file, comment="#", header=None)
 
@@ -78,4 +223,154 @@ def format_icc(
     output_path: str
 ):
     jl.format_rme_icc(rme_path, canonical_path, output_path)
+
     return None
+
+
+
+@app.command(help="Generate a GBR-wide ADRIA Domain from local files.")
+def generate_domain_from_local(
+    output_dir: str,
+    canonical_gpkg: str,
+    dhw_path: str,
+    rme_path: str,
+    rcps: str = typer.Option("2.6 4.5 7.0 8.5"),
+    timeframe: str = typer.Option("2025 2099")
+):
+    print(canonical_gpkg)
+    print(dhw_path)
+    print(rme_path)
+    generate_dpkg(output_dir)
+
+    format_dhw(dhw_path, pj(output_dir, "DHWs"), rcps, timeframe)
+    format_connectivity(rme_path, canonical_gpkg, pj(output_dir, "connectivity"))
+    format_icc(rme_path, canonical_gpkg, pj(output_dir, "spatial", "coral_cover.nc"))
+
+    gdf = gpd.read_file(canonical_gpkg)
+    gdf["cluster_id"] = range(1, len(gdf) + 1)
+    gdf.to_file(pj(output_dir, "spatial", f"{basename(output_dir)}.gpkg"), driver="GPKG")
+
+    return None
+
+@app.command(help="Generate a GBR-wide ADRIA Domain from Data Store Handles or local paths.")
+def generate_domain_from_store(
+    output_dir: Optional[str] = typer.Argument(None, help="Output directory"),
+    canonical_gpkg_handle: Optional[str] = typer.Option(None, help="Handle ID for canonical geopackage. Either this or --canonical-gpkg-path must be specified."),
+    canonical_gpkg_path: Optional[str] = typer.Option(None, help="Local path to canonical geopackage file. Either this or --canonical-gpkg-handle must be specified."),
+    dhw_handle: Optional[str] = typer.Option(None, help="Handle ID for DHW dataset. Either this or --dhw-path must be specified."),
+    dhw_path: Optional[str] = typer.Option(None, help="Local path to DHW dataset. Either this or --dhw-handle must be specified."),
+    rme_handle: Optional[str] = typer.Option(None, help="Handle ID for ReefMod Engine dataset. Either this or --rme-path must be specified."),
+    rme_path: Optional[str] = typer.Option(None, help="Local path to ReefMod Engine dataset. Either this or --rme-handle must be specified."),
+    rcps: Optional[str] = typer.Option(None, show_default="2.6 4.5 7.0 8.5"),
+    timeframe: Optional[str] = typer.Option(None, show_default="2025 2099"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to TOML configuration file.")
+):
+
+    cfg = {}
+    if config:
+        with open(config, "rb") as f:
+            cfg = tomllib.load(f)
+
+    def get_val(cli_val, keys, default=None):
+        if cli_val is not None:
+             return cli_val
+        val = cfg
+        for k in keys:
+             if isinstance(val, dict): val = val.get(k)
+             else: val = None
+        return val if val is not None else default
+
+    output_dir = get_val(output_dir, ["domain", "output_dir"])
+    if not output_dir:
+        raise typer.BadParameter("output_dir must be specified either as an argument or in the configuration file.")
+
+    canonical_gpkg_handle = get_val(canonical_gpkg_handle, ["canonical", "handle"])
+    canonical_gpkg_path = get_val(canonical_gpkg_path, ["canonical", "path"])
+
+    dhw_handle = get_val(dhw_handle, ["dhw", "handle"])
+    dhw_path = get_val(dhw_path, ["dhw", "path"])
+
+    rme_handle = get_val(rme_handle, ["rme", "handle"])
+    rme_path = get_val(rme_path, ["rme", "path"])
+
+    rcps = get_val(rcps, ["options", "rcps"], "2.6 4.5 7.0 8.5")
+    timeframe = get_val(timeframe, ["options", "timeframe"], "2025 2099")
+
+    if os.path.exists(output_dir):
+        raise typer.BadParameter(f"Output directory '{output_dir}' already exists. Please specify a new directory or remove the existing one.")
+
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Resolve canonical geopackage source
+        canonical_gpkg_resolved_path: str = ""
+        canonical_meta_path: Optional[str] = None
+        if canonical_gpkg_handle and canonical_gpkg_path:
+            raise typer.BadParameter("Cannot specify both --canonical-gpkg-handle and --canonical-gpkg-path.")
+        elif canonical_gpkg_handle:
+            canonical_dir = pj(tmp_dir, "canonical")
+            print(f"Downloading canonical geopackage (handle: {canonical_gpkg_handle})...")
+            download_data(canonical_gpkg_handle, canonical_dir)
+            gpkg_files = glob(pj(canonical_dir, "*.gpkg"))
+            if not gpkg_files:
+                raise RuntimeError(f"No .gpkg file found in downloaded canonical dataset from handle {canonical_gpkg_handle}")
+            canonical_gpkg_resolved_path = gpkg_files[0]
+            canonical_meta_path = pj(canonical_dir, "metadata.json")
+        elif canonical_gpkg_path:
+            canonical_gpkg_resolved_path = canonical_gpkg_path
+        else:
+            raise typer.BadParameter("Either --canonical-gpkg-handle or --canonical-gpkg-path must be specified for the canonical geopackage.")
+
+        # Resolve DHW source
+        dhw_resolved_path: str = ""
+        dhw_meta_path: Optional[str] = None
+        if dhw_handle and dhw_path:
+            raise typer.BadParameter("Cannot specify both --dhw-handle and --dhw-path.")
+        elif dhw_handle:
+            dhw_dir = pj(tmp_dir, "dhw")
+            print(f"Downloading DHW dataset (handle: {dhw_handle})...")
+            download_data(dhw_handle, dhw_dir)
+            dhw_resolved_path = dhw_dir
+            dhw_meta_path = pj(dhw_dir, "metadata.json")
+        elif dhw_path:
+            dhw_resolved_path = dhw_path
+        else:
+            raise typer.BadParameter("Either --dhw-handle or --dhw-path must be specified for the DHW dataset.")
+
+        # Resolve RME source
+        rme_resolved_path: str = ""
+        rme_meta_path: Optional[str] = None
+        if rme_handle and rme_path:
+            raise typer.BadParameter("Cannot specify both --rme-handle and --rme-path.")
+        elif rme_handle:
+            rme_dir = pj(tmp_dir, "rme")
+            print(f"Downloading ReefMod Engine dataset (handle: {rme_handle})...")
+            download_data(rme_handle, rme_dir)
+            rme_meta_path = pj(rme_dir, "metadata.json")
+
+            # Check subdirectories
+            subdirs = [d for d in os.listdir(rme_dir) if os.path.isdir(pj(rme_dir, d))]
+
+            if len(subdirs) == 1:
+                rme_resolved_path = os.path.join(rme_dir, subdirs[0])
+            else:
+                # Find the subdirectory with "Windows" in its name
+                windows_subdirs = [d for d in subdirs if "Windows" in d]
+                if not windows_subdirs:
+                    raise RuntimeError(f"No 'Windows' subdirectory found in downloaded RME dataset from handle {rme_handle}")
+                if len(windows_subdirs) > 1:
+                    print(f"Warning: Multiple 'Windows' subdirectories found in {rme_dir}. Using the first one: {windows_subdirs[0]}")
+
+                rme_resolved_path = pj(rme_dir, windows_subdirs[0])
+        elif rme_path:
+            rme_resolved_path = rme_path
+        else:
+            raise typer.BadParameter("Either --rme-handle or --rme-path must be specified for the ReefMod Engine dataset.")
+
+        print("Formatting domain...")
+        generate_domain_from_local(output_dir, canonical_gpkg_resolved_path, dhw_resolved_path, rme_resolved_path, rcps, timeframe)
+
+        _update_datapackage(output_dir, canonical_meta_path, dhw_meta_path, rme_meta_path, timeframe)
+    
+    print("\nNOTE: The 'location_id_col', 'cluster_id_col', 'k_col', and 'area_col' names must be manually added to the generated 'datapackage.json' file under the 'spatial_data' resource before use.")
+    return None
+
