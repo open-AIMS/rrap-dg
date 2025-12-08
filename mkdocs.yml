@@ -1,0 +1,12 @@
+site_name: RRAP-DG
+site_description: AIMS-RRAP Data Generator
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - User Guide:
+    - GBR Domain Generation: gbr_domain.md
+    - Data Store Interaction: data_store.md
+  - CLI Reference: cli.md
