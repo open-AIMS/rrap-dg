@@ -8,6 +8,7 @@ from scipy.stats import norm
 from scipy.optimize import curve_fit
 from shapely.geometry import Polygon, Point
 
+
 def gauss(x, amp, mu, sigma):
     """Gaussian function.
 

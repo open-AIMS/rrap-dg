@@ -290,7 +290,7 @@ def generate(
                         dhw[sim_i, site_i, yr_s] = dhw_r + spatialadj
                         continue
 
-                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97))
+                    dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97)) 
 
             # Make values > 0 as negative DHW is not possible.
             dhw = np.maximum(dhw, 0.0)
@@ -352,6 +352,7 @@ def generate(
             reef_ID[:] = cluster_poly.loc[:, "site_id"].to_numpy()
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
+
 
 # if __name__ == "__main__":
 #     typer.run(generate_DHWs)
