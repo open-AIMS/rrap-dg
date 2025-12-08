@@ -201,7 +201,6 @@ def format_connectivity(
     connectivity_files = glob(connectivity_path)
 
     rme_id_list_path = pj(rme_data_path, "id", "id_list_*.csv")
-    print(rme_id_list_path)
     rme_id_file = glob(rme_id_list_path)[0]
     rme_ids = pd.read_csv(rme_id_file, comment="#", header=None)
 
@@ -237,9 +236,6 @@ def generate_domain_from_local(
     rcps: str = typer.Option("2.6 4.5 7.0 8.5"),
     timeframe: str = typer.Option("2025 2099")
 ):
-    print(canonical_gpkg)
-    print(dhw_path)
-    print(rme_path)
     generate_dpkg(output_dir)
 
     format_dhw(dhw_path, pj(output_dir, "DHWs"), rcps, timeframe)
