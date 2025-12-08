@@ -271,6 +271,22 @@ def generate_domain_from_store(
         with open(config, "rb") as f:
             cfg = tomllib.load(f)
 
+        # Check if CLI args are also provided
+        cli_args_provided = any([
+            output_dir is not None,
+            canonical_gpkg_handle is not None,
+            canonical_gpkg_path is not None,
+            dhw_handle is not None,
+            dhw_path is not None,
+            rme_handle is not None,
+            rme_path is not None,
+            rcps is not None,
+            timeframe is not None
+        ])
+        
+        if cli_args_provided:
+            raise typer.BadParameter("Command line arguments cannot be used together with a configuration file.")
+
     def get_val(cli_val, keys, default=None):
         if cli_val is not None:
              return cli_val
