@@ -2,7 +2,6 @@ import netCDF4
 from os.path import join as pj
 from  glob import glob
 
-import typer
 import numpy as np
 import pandas as pd
 
@@ -31,10 +30,10 @@ def validate_lon_agreement(dhw_nc_handles: list) -> None:
     return None
 
 def validate_lat_agreement(dhw_nc_handles: list) -> None:
-    lons = dhw_nc_handles[0].variables['lat_reef'][:]
+    lats = dhw_nc_handles[0].variables['lat_reef'][:]
 
     for nc_handle in dhw_nc_handles[1:]:
-        if not all(lons == nc_handle.variables['lat_reef'][:]):
+        if not all(lats == nc_handle.variables['lat_reef'][:]):
             raise ValueError(
                 f"DHW files {dhw_nc_handles[0].filepath()} and {nc_handle.filepath()}"
                 " have different latitude arrays."
