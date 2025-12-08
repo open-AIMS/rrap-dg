@@ -368,6 +368,52 @@ Engine](https://data.mds.gbrrestoration.org/dataset/102.100.100/708667?view=over
 (rrap-dg) $ rrapdg GBR format-icc [ReefMod Engine Path] [Canonical Path] [Output Path]
 ```
 
+## Integrated GBR Domain Generation
+
+This command facilitates the generation of a complete GBR-wide ADRIA Domain by consolidating data from various sources, either from the RRAP M&DS Data Store via handle IDs or from local file paths. It supports configuration through a TOML file, allowing for flexible and centralized management of input parameters.
+
+Usage:
+
+```console
+(rrap-dg) $ rrapdg GBR generate-domain-from-store [output directory] --config [config.toml]
+```
+
+Or by providing individual arguments (which will override values in the config file):
+
+```console
+(rrap-dg) $ rrapdg GBR generate-domain-from-store ./my_domain_output --canonical-gpkg-handle 10378.1/123456 --dhw-handle 10378.1/234567 --rme-handle 10378.1/345678 --rcps "2.6 4.5 8.5"
+```
+
+### Configuration File (TOML) Example
+
+You can define all parameters in a `config.toml` file. This format is recommended for its readability and ease of management.
+
+```toml
+[domain]
+output_dir = "./my_gbr_domain" # Output directory for the generated domain
+
+[canonical]
+# Specify either handle or path for the canonical geopackage
+# handle = "10378.1/123456"
+path = "/path/to/local/canonical.gpkg"
+
+[dhw]
+# Specify either handle or path for the DHW dataset
+handle = "10378.1/234567"
+# path = "/path/to/local/dhw_data"
+
+[rme]
+# Specify either handle or path for the ReefMod Engine dataset
+# handle = "10378.1/345678"
+path = "/path/to/local/rme_data"
+
+[options]
+# Space-separated list of RCPs (Representative Concentration Pathways)
+rcps = "2.6 4.5 7.0 8.5"
+# Space-separated start and end year for projections
+timeframe = "2025 2099"
+```
+
 ## License
 
 `rrap-dg` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
