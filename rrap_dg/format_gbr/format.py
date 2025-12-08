@@ -38,7 +38,10 @@ def _update_datapackage(
     canonical_meta_path: Optional[str],
     dhw_meta_path: Optional[str],
     rme_meta_path: Optional[str],
-    timeframe: str
+    timeframe: str,
+    canonical_handle: Optional[str] = None,
+    dhw_handle: Optional[str] = None,
+    rme_handle: Optional[str] = None
 ):
     dpkg_path = pj(output_dir, "datapackage.json")
     if not exists(dpkg_path):
@@ -72,11 +75,7 @@ def _update_datapackage(
             },
             {
                 "name": "coral_cover",
-                "description": [
-                    "ReefModEngine initial coral cover data.",
-                    "The data is downscaled over sites according to the indicated available k area for each site, and exported in netCDF format.",
-                    "The values (0 to 1) that are relative to each site k area."
-                ],
+                "description": "Initial coral cover for ADRIA Domain.",
                 "path": "spatial/coral_cover.nc",
                 "format": "netCDF"
             },
@@ -115,6 +114,12 @@ def _update_datapackage(
         "DHW": dhw_meta_path,
         "RME": rme_meta_path
     }
+    
+    source_handles = {
+        "Canonical": canonical_handle,
+        "DHW": dhw_handle,
+        "RME": rme_handle
+    }
 
     contributors = {}
 
@@ -130,12 +135,14 @@ def _update_datapackage(
                         "title": dataset_info.get("name", f"{source_name} Dataset"),
                         "description": dataset_info.get("description", ""),
                         "path": "",
-                        "handle": meta.get('associations', {}).get('data_custodian_id', '')
+                        "handle": source_handles.get(source_name, "") or ""
                     })
 
                     # Extract contributor/contact
                     associations = meta.get("associations", {})
                     contact = associations.get("point_of_contact")
+                    data_custodian_id = associations.get("data_custodian_id")
+                    
                     if contact:
                         if contact not in contributors:
                             contributors[contact] = {
@@ -146,6 +153,9 @@ def _update_datapackage(
                             }
                         else:
                             contributors[contact]["description"] += f", {source_name}"
+                        
+                        if data_custodian_id:
+                            contributors[contact]["data_custodian_id"] = data_custodian_id
                     
                     # Maybe append rights holder to contributors or separate field?
                     rights_holder = dataset_info.get("rights_holder")
@@ -359,20 +369,13 @@ def generate_domain_from_store(
             download_data(rme_handle, rme_dir)
             rme_meta_path = pj(rme_dir, "metadata.json")
 
-            # Check subdirectories
-            subdirs = [d for d in os.listdir(rme_dir) if os.path.isdir(pj(rme_dir, d))]
-
-            if len(subdirs) == 1:
-                rme_resolved_path = os.path.join(rme_dir, subdirs[0])
-            else:
-                # Find the subdirectory with "Windows" in its name
-                windows_subdirs = [d for d in subdirs if "Windows" in d]
-                if not windows_subdirs:
-                    raise RuntimeError(f"No 'Windows' subdirectory found in downloaded RME dataset from handle {rme_handle}")
-                if len(windows_subdirs) > 1:
-                    print(f"Warning: Multiple 'Windows' subdirectories found in {rme_dir}. Using the first one: {windows_subdirs[0]}")
-
-                rme_resolved_path = pj(rme_dir, windows_subdirs[0])
+            # Search for 'data_files' directory
+            data_files_search = glob(pj(rme_dir, "**", "data_files"), recursive=True)
+            if not data_files_search:
+                 raise RuntimeError(f"No 'data_files' directory found in downloaded RME dataset from handle {rme_handle}")
+            
+            # The RME path expected by downstream functions is the directory containing 'data_files'
+            rme_resolved_path = os.path.dirname(data_files_search[0])
         elif rme_path:
             rme_resolved_path = rme_path
         else:
@@ -381,7 +384,16 @@ def generate_domain_from_store(
         print("Formatting domain...")
         generate_domain_from_local(output_dir, canonical_gpkg_resolved_path, dhw_resolved_path, rme_resolved_path, rcps, timeframe)
 
-        _update_datapackage(output_dir, canonical_meta_path, dhw_meta_path, rme_meta_path, timeframe)
+        _update_datapackage(
+            output_dir, 
+            canonical_meta_path, 
+            dhw_meta_path, 
+            rme_meta_path, 
+            timeframe,
+            canonical_handle=canonical_gpkg_handle,
+            dhw_handle=dhw_handle,
+            rme_handle=rme_handle
+        )
     
     print("\nNOTE: The 'location_id_col', 'cluster_id_col', 'k_col', and 'area_col' names must be manually added to the generated 'datapackage.json' file under the 'spatial_data' resource before use.")
     return None
