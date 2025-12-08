@@ -1,8 +1,7 @@
 from provenaclient import ProvenaClient, Config
 from provenaclient.auth import DeviceFlow
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-
 
 class Settings(BaseSettings):
     # The provena deployment to target
@@ -12,9 +11,7 @@ class Settings(BaseSettings):
     # The keycloak client ID
     provena_client_id: str = "automated-access"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 def get_settings() -> Settings:
