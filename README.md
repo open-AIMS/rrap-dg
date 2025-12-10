@@ -375,43 +375,38 @@ This command facilitates the generation of a complete GBR-wide ADRIA Domain by c
 Usage:
 
 ```console
-(rrap-dg) $ rrapdg GBR generate-domain-from-store [output directory] --config [config.toml]
+(rrap-dg) $ rrapdg GBR generate-domain-from-store [OUTPUT_PARENT_DIR] [DOMAIN_NAME] --config [CONFIG_FILE]
 ```
 
-Or by providing individual arguments (which will override values in the config file):
+*   `OUTPUT_PARENT_DIR`: The parent directory where the generated domain folder will be created.
+*   `DOMAIN_NAME`: A short name for the domain (e.g., "GBR").
 
-```console
-(rrap-dg) $ rrapdg GBR generate-domain-from-store ./my_domain_output --canonical-gpkg-handle 10378.1/123456 --dhw-handle 10378.1/234567 --rme-handle 10378.1/345678 --rcps "2.6 4.5 8.5"
-```
+The domain will be saved in a new directory named `<DOMAIN_NAME>_YYYY-MM-DD_v<VERSION>` within the `OUTPUT_PARENT_DIR`.
 
 ### Configuration File (TOML) Example
 
-You can define all parameters in a `config.toml` file. This format is recommended for its readability and ease of management.
+All domain parameters must be specified in a TOML configuration file.
 
 ```toml
-[domain]
-output_dir = "./my_gbr_domain" # Output directory for the generated domain
-
-[canonical]
-# Specify either handle or path for the canonical geopackage
-# handle = "10378.1/123456"
-path = "/path/to/local/canonical.gpkg"
+[spatial]
+location_id_col = "UNIQUE_ID"
+cluster_id_col = "UNIQUE_ID"
+k_col = "ReefMod_habitable_proportion"
+area_col = "ReefMod_area_m2"
+handle = "10378.1/123456" # Canonical GeoPackage handle (either handle or path)
+# path = "/local/path/to/canonical.gpkg" # Canonical GeoPackage local path
 
 [dhw]
-# Specify either handle or path for the DHW dataset
 handle = "10378.1/234567"
-# path = "/path/to/local/dhw_data"
+# path = "/local/path/to/dhw_data"
 
 [rme]
-# Specify either handle or path for the ReefMod Engine dataset
-# handle = "10378.1/345678"
-path = "/path/to/local/rme_data"
+handle = "10378.1/345678"
+# path = "/local/path/to/rme_data"
 
 [options]
-# Space-separated list of RCPs (Representative Concentration Pathways)
 rcps = "2.6 4.5 7.0 8.5"
-# Space-separated start and end year for projections
-timeframe = "2025 2099"
+timeframe = "2025 2060"
 ```
 
 ## License

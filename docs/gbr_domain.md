@@ -4,49 +4,45 @@ The `rrapdg` tool provides a streamlined workflow for generating GBR-wide ADRIA 
 
 ## Command: `generate-domain-from-store`
 
-This command downloads necessary datasets (Canonical, DHW, ReefMod Engine) using their unique handle IDs, formats them, and packages them into a ready-to-use ADRIA domain.
+This command downloads necessary datasets (Canonical, DHW, ReefMod Engine) using their unique handle IDs or local paths, formats them, and packages them into a ready-to-use ADRIA domain.
 
 ### Usage
 
 ```bash
-rrapdg GBR generate-domain-from-store [OUTPUT_DIR] [OPTIONS]
+rrapdg GBR generate-domain-from-store [OUTPUT_PARENT_DIR] [DOMAIN_NAME] --config [CONFIG_FILE]
 ```
 
 ### Arguments
 
-*   `OUTPUT_DIR`: The directory where the generated domain and datapackage will be saved.
+*   `OUTPUT_PARENT_DIR`: The parent directory where the generated domain folder will be created. The folder name will be auto-generated as `<DOMAIN_NAME>_<DATE>_v<VERSION>`.
+*   `DOMAIN_NAME`: A short name for the domain (e.g., "GBR").
 
 ### Options
 
-*   `--canonical-gpkg-handle TEXT`: Handle ID for the canonical geopackage.
-*   `--canonical-gpkg-path PATH`: Local path to the canonical geopackage.
-*   `--dhw-handle TEXT`: Handle ID for the DHW dataset.
-*   `--dhw-path PATH`: Local path to the DHW dataset.
-*   `--rme-handle TEXT`: Handle ID for the ReefMod Engine dataset.
-*   `--rme-path PATH`: Local path to the ReefMod Engine dataset.
-*   `--rcps TEXT`: Space-separated list of RCPs (e.g., "2.6 4.5 8.5"). Default: "2.6 4.5 7.0 8.5".
-*   `--timeframe TEXT`: Space-separated start and end years (e.g., "2025 2099"). Default: "2025 2099".
-*   `--config FILE`: Path to a TOML configuration file to specify arguments.
+*   `--config`, `-c`: **(Required)** Path to a TOML configuration file defining the input datasets and parameters.
 
 ### Configuration File (TOML)
 
-Using a configuration file is recommended for reproducibility.
+All domain parameters must be specified in a TOML configuration file.
 
 **Example `config.toml`:**
 
 ```toml
-[domain]
-output_dir = "./my_gbr_domain"
-
-[canonical]
-handle = "10378.1/123456"
-# path = "/local/path/to/canonical.gpkg"
+[spatial]
+location_id_col = "UNIQUE_ID"
+cluster_id_col = "UNIQUE_ID"
+k_col = "ReefMod_habitable_proportion"
+area_col = "ReefMod_area_m2"
+handle = "10378.1/123456" # Canonical GeoPackage handle (either handle or path)
+# path = "/local/path/to/canonical.gpkg" # Canonical GeoPackage local path
 
 [dhw]
 handle = "10378.1/234567"
+# path = "/local/path/to/dhw_data"
 
 [rme]
-path = "/local/path/to/rme_data"
+handle = "10378.1/345678"
+# path = "/local/path/to/rme_data"
 
 [options]
 rcps = "2.6 4.5 7.0 8.5"
@@ -55,7 +51,7 @@ timeframe = "2025 2060"
 
 ### Output Structure
 
-The command generates a directory containing:
+The command generates a versioned directory (e.g., `GBR_2023-10-27_v080`) containing:
 
 *   `datapackage.json`: Fully populated metadata file.
 *   `spatial/`: Geopackage and coral cover NetCDF.
@@ -63,5 +59,3 @@ The command generates a directory containing:
 *   `connectivity/`: Connectivity matrices.
 *   `cyclones/`: (Placeholder if data not provided).
 *   `waves/`: (Placeholder if data not provided).
-
-**Note:** After generation, you must manually open `datapackage.json` and ensure the column mapping in the `spatial_data` resource description matches your geopackage (specifically `location_id_col`, `cluster_id_col`, `k_col`, and `area_col`).

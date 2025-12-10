@@ -16,7 +16,7 @@ from glob  import glob
 import tempfile
 from typing import Optional
 from datetime import datetime
-from rrap_dg import PKG_PATH
+from rrap_dg import PKG_PATH, DATAPACKAGE_VERSION
 from rrap_dg.dpkg_template.dpkg_template import generate as generate_dpkg
 from rrap_dg.data_store.data_store import download as download_data
 
@@ -39,6 +39,10 @@ def _update_datapackage(
     dhw_meta_path: Optional[str],
     rme_meta_path: Optional[str],
     timeframe: str,
+    location_id_col: str,
+    cluster_id_col: str,
+    k_col: str,
+    area_col: str,
     canonical_handle: Optional[str] = None,
     dhw_handle: Optional[str] = None,
     rme_handle: Optional[str] = None
@@ -54,7 +58,7 @@ def _update_datapackage(
         "name": domain_name,
         "title": f"{domain_name} Domain",
         "description": "Generated ADRIA Domain",
-        "version": "0.1.0",
+        "version": DATAPACKAGE_VERSION,
         "sources": [],
         "simulation_metadata": {
             "timeframe": list(map(int, timeframe.split(" ")))
@@ -71,7 +75,11 @@ def _update_datapackage(
                 "name": "spatial_data",
                 "description": "Spatial data of cluster.",
                 "path": f"spatial/{domain_name}.gpkg",
-                "format": "geopackage"
+                "format": "geopackage",
+                "location_id_col": location_id_col,
+                "cluster_id_col": cluster_id_col,
+                "k_col": k_col,
+                "area_col": area_col
             },
             {
                 "name": "coral_cover",
@@ -260,63 +268,38 @@ def generate_domain_from_local(
 
 @app.command(help="Generate a GBR-wide ADRIA Domain from Data Store Handles or local paths.")
 def generate_domain_from_store(
-    output_dir: Optional[str] = typer.Argument(None, help="Output directory"),
-    canonical_gpkg_handle: Optional[str] = typer.Option(None, help="Handle ID for canonical geopackage. Either this or --canonical-gpkg-path must be specified."),
-    canonical_gpkg_path: Optional[str] = typer.Option(None, help="Local path to canonical geopackage file. Either this or --canonical-gpkg-handle must be specified."),
-    dhw_handle: Optional[str] = typer.Option(None, help="Handle ID for DHW dataset. Either this or --dhw-path must be specified."),
-    dhw_path: Optional[str] = typer.Option(None, help="Local path to DHW dataset. Either this or --dhw-handle must be specified."),
-    rme_handle: Optional[str] = typer.Option(None, help="Handle ID for ReefMod Engine dataset. Either this or --rme-path must be specified."),
-    rme_path: Optional[str] = typer.Option(None, help="Local path to ReefMod Engine dataset. Either this or --rme-handle must be specified."),
-    rcps: Optional[str] = typer.Option(None, show_default="2.6 4.5 7.0 8.5"),
-    timeframe: Optional[str] = typer.Option(None, show_default="2025 2099"),
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to TOML configuration file.")
+    output_parent_dir: str = typer.Argument(..., help="Parent directory where the domain will be saved"),
+    domain_name: str = typer.Argument(..., help="Name of the domain (e.g., GBR)"),
+    config: str = typer.Option(..., "--config", "-c", help="Path to TOML configuration file.")
 ):
 
-    cfg = {}
-    if config:
-        with open(config, "rb") as f:
-            cfg = tomllib.load(f)
+    with open(config, "rb") as f:
+        cfg = tomllib.load(f)
 
-        # Check if CLI args are also provided
-        cli_args_provided = any([
-            output_dir is not None,
-            canonical_gpkg_handle is not None,
-            canonical_gpkg_path is not None,
-            dhw_handle is not None,
-            dhw_path is not None,
-            rme_handle is not None,
-            rme_path is not None,
-            rcps is not None,
-            timeframe is not None
-        ])
-        
-        if cli_args_provided:
-            raise typer.BadParameter("Command line arguments cannot be used together with a configuration file.")
+    spatial_cfg = cfg.get("spatial", {})
 
-    def get_val(cli_val, keys, default=None):
-        if cli_val is not None:
-             return cli_val
-        val = cfg
-        for k in keys:
-             if isinstance(val, dict): val = val.get(k)
-             else: val = None
-        return val if val is not None else default
+    canonical_gpkg_handle = spatial_cfg.get("handle")
+    canonical_gpkg_path = spatial_cfg.get("path")
 
-    output_dir = get_val(output_dir, ["domain", "output_dir"])
-    if not output_dir:
-        raise typer.BadParameter("output_dir must be specified either as an argument or in the configuration file.")
+    dhw_handle = cfg.get("dhw", {}).get("handle")
+    dhw_path = cfg.get("dhw", {}).get("path")
 
-    canonical_gpkg_handle = get_val(canonical_gpkg_handle, ["canonical", "handle"])
-    canonical_gpkg_path = get_val(canonical_gpkg_path, ["canonical", "path"])
+    rme_handle = cfg.get("rme", {}).get("handle")
+    rme_path = cfg.get("rme", {}).get("path")
 
-    dhw_handle = get_val(dhw_handle, ["dhw", "handle"])
-    dhw_path = get_val(dhw_path, ["dhw", "path"])
+    rcps = cfg.get("options", {}).get("rcps", "2.6 4.5 7.0 8.5")
+    timeframe = cfg.get("options", {}).get("timeframe", "2025 2099")
+    
+    location_id_col = spatial_cfg.get("location_id_col", "UNIQUE_ID")
+    cluster_id_col = spatial_cfg.get("cluster_id_col", "UNIQUE_ID")
+    k_col = spatial_cfg.get("k_col", "ReefMod_habitable_proportion")
+    area_col = spatial_cfg.get("area_col", "ReefMod_area_m2")
 
-    rme_handle = get_val(rme_handle, ["rme", "handle"])
-    rme_path = get_val(rme_path, ["rme", "path"])
-
-    rcps = get_val(rcps, ["options", "rcps"], "2.6 4.5 7.0 8.5")
-    timeframe = get_val(timeframe, ["options", "timeframe"], "2025 2099")
+    # Construct output directory path
+    date_str = datetime.today().strftime('%Y-%m-%d')
+    version_str = DATAPACKAGE_VERSION.replace(".", "")
+    output_dir_name = f"{domain_name}_{date_str}_v{version_str}"
+    output_dir = pj(output_parent_dir, output_dir_name)
 
     if os.path.exists(output_dir):
         raise typer.BadParameter(f"Output directory '{output_dir}' already exists. Please specify a new directory or remove the existing one.")
@@ -327,7 +310,7 @@ def generate_domain_from_store(
         canonical_gpkg_resolved_path: str = ""
         canonical_meta_path: Optional[str] = None
         if canonical_gpkg_handle and canonical_gpkg_path:
-            raise typer.BadParameter("Cannot specify both --canonical-gpkg-handle and --canonical-gpkg-path.")
+            raise typer.BadParameter("Cannot specify both 'handle' and 'path' for canonical geopackage under [spatial] in configuration.")
         elif canonical_gpkg_handle:
             canonical_dir = pj(tmp_dir, "canonical")
             print(f"Downloading canonical geopackage (handle: {canonical_gpkg_handle})...")
@@ -340,13 +323,13 @@ def generate_domain_from_store(
         elif canonical_gpkg_path:
             canonical_gpkg_resolved_path = canonical_gpkg_path
         else:
-            raise typer.BadParameter("Either --canonical-gpkg-handle or --canonical-gpkg-path must be specified for the canonical geopackage.")
+            raise typer.BadParameter("Either 'handle' or 'path' must be specified for the canonical geopackage under [spatial] in configuration.")
 
         # Resolve DHW source
         dhw_resolved_path: str = ""
         dhw_meta_path: Optional[str] = None
         if dhw_handle and dhw_path:
-            raise typer.BadParameter("Cannot specify both --dhw-handle and --dhw-path.")
+            raise typer.BadParameter("Cannot specify both handle and path for DHW dataset in configuration.")
         elif dhw_handle:
             dhw_dir = pj(tmp_dir, "dhw")
             print(f"Downloading DHW dataset (handle: {dhw_handle})...")
@@ -356,13 +339,13 @@ def generate_domain_from_store(
         elif dhw_path:
             dhw_resolved_path = dhw_path
         else:
-            raise typer.BadParameter("Either --dhw-handle or --dhw-path must be specified for the DHW dataset.")
+            raise typer.BadParameter("Either handle or path must be specified for the DHW dataset in configuration.")
 
         # Resolve RME source
         rme_resolved_path: str = ""
         rme_meta_path: Optional[str] = None
         if rme_handle and rme_path:
-            raise typer.BadParameter("Cannot specify both --rme-handle and --rme-path.")
+            raise typer.BadParameter("Cannot specify both handle and path for ReefMod Engine dataset in configuration.")
         elif rme_handle:
             rme_dir = pj(tmp_dir, "rme")
             print(f"Downloading ReefMod Engine dataset (handle: {rme_handle})...")
@@ -379,7 +362,7 @@ def generate_domain_from_store(
         elif rme_path:
             rme_resolved_path = rme_path
         else:
-            raise typer.BadParameter("Either --rme-handle or --rme-path must be specified for the ReefMod Engine dataset.")
+            raise typer.BadParameter("Either handle or path must be specified for the ReefMod Engine dataset in configuration.")
 
         print("Formatting domain...")
         generate_domain_from_local(output_dir, canonical_gpkg_resolved_path, dhw_resolved_path, rme_resolved_path, rcps, timeframe)
@@ -390,11 +373,14 @@ def generate_domain_from_store(
             dhw_meta_path, 
             rme_meta_path, 
             timeframe,
+            location_id_col,
+            cluster_id_col,
+            k_col,
+            area_col,
             canonical_handle=canonical_gpkg_handle,
             dhw_handle=dhw_handle,
             rme_handle=rme_handle
         )
     
-    print("\nNOTE: The 'location_id_col', 'cluster_id_col', 'k_col', and 'area_col' names must be manually added to the generated 'datapackage.json' file under the 'spatial_data' resource before use.")
     return None
 
