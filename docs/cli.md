@@ -2,45 +2,72 @@
 
 The `rrapdg` command-line tool is organized into several command groups.
 
-## Global Options
+## Degree Heating Weeks (DHW)
 
-*   `--help`: Show help message and exit.
+Generate Degree Heating Week projections using combinations of NOAA CRW data, MIROC5 projections, and RECOM patterns.
 
-## Command Groups
+**Usage:**
 
-### `GBR`
-Commands specific to Great Barrier Reef workflows.
+```console
+(rrap-dg) $ rrapdg dhw generate [cluster name] [input data directory] [output directory] [optional settings...]
+```
 
-*   `generate-domain-from-store`: Generate a full domain from data store handles or local files.
-*   `format-dhw`: Format Degree Heating Week datasets.
-*   `format-connectivity`: Format ReefMod Engine connectivity datasets.
-*   `format-icc`: Format initial coral cover data.
-*   `generate-domain-from-local`: Generate a domain from strictly local file paths.
+Example:
+```console
+(rrap-dg) $ rrapdg dhw generate Moore C:/data_package_location C:/temp --n-sims 50 --rcps "2.6 4.5 6.0 8.5" --gen-year "2025 2100"
+```
 
-### `domain`
-General domain clustering and generation tools.
+## Initial Coral Cover (ICC)
 
-*   `cluster`: Cluster a domain based on connectivity and other metrics.
+Downscale ReefMod Engine (RME) coral cover data to ADRIA format.
 
-### `dhw`
-Tools for processing Degree Heating Week data.
+**Usage:**
 
-*   (See `--help` for specific subcommands)
+```console
+(rrap-dg) $ rrapdg coral-cover downscale-icc [rrap-dg datapackage path] [target geopackage] [output path]
+```
 
-### `cyclones`
-Tools for processing cyclone mortality data.
+Example:
+```console
+(rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/rrapdg ./Moore.gpkg ./coral_cover.nc
+```
 
-*   (See `--help` for specific subcommands)
+You can also use a TOML file to define bin edges:
+```console
+(rrap-dg) $ rrapdg coral-cover bin-edge-icc [rrap-dg datapackage path] [target geopackage] [output directory] [TOML file]
+```
 
-### `coral-cover`
-Tools for downscaling and formatting initial coral cover.
+## Cyclone Mortality
 
-### `data-store`
-Interactions with the RRAP Data Store.
+Generate Cyclone Mortality projections.
 
-*   `download`: Download datasets.
+**Usage:**
 
-### `template`
-Helpers for creating data packages.
+```console
+(rrap-dg) $ rrapdg cyclones generate [rrapdg datapackage path] [reefmod engine datapackage path] [output directory path]
+```
 
-*   `generate`: Create an empty ADRIA domain data package structure.
+## Domain Clusters
+
+Assign locations in a geopackage to clusters using k-means clustering (Adaptive Differential Evolution).
+
+**Usage:**
+
+```console
+(rrap-dg) $ rrapdg domain cluster [geopackage path] [output directory path]
+```
+
+Example:
+```console
+(rrap-dg) $ rrapdg domain cluster "C:/example/example.gpkg" "./test.gpkg"
+```
+
+## RRAP M&DS Data Store
+
+Download data from the M&DS datastore.
+
+**Usage:**
+
+```console
+(rrap-dg) $ rrapdg data-store download [dataset id] [output directory]
+```
