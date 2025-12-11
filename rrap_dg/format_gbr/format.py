@@ -9,6 +9,8 @@ import os
 import json
 import geopandas as gpd
 import pandas as pd
+from string import Template
+from itertools import groupby
 
 from os.path import join as pj
 from os.path import basename, exists
@@ -45,7 +47,11 @@ def _update_datapackage(
     area_col: str,
     canonical_handle: Optional[str] = None,
     dhw_handle: Optional[str] = None,
-    rme_handle: Optional[str] = None
+    rme_handle: Optional[str] = None,
+    waves_path: str = "",
+    waves_desc: str = "No data provided/available.",
+    cyclones_path: str = "",
+    cyclones_desc: str = "No data provided/available."
 ):
     dpkg_path = pj(output_dir, "datapackage.json")
     if not exists(dpkg_path):
@@ -53,69 +59,45 @@ def _update_datapackage(
 
     domain_name = basename(output_dir)
     
-    # Base structure
-    dpkg = {
-        "name": domain_name,
-        "title": f"{domain_name} Domain",
-        "description": "Generated ADRIA Domain",
-        "version": DATAPACKAGE_VERSION,
-        "sources": [],
-        "simulation_metadata": {
-            "timeframe": list(map(int, timeframe.split(" ")))
-        },
-        "contributors": [],
-        "resources": [
-             {
-                "name": "connectivity",
-                "description": "Connectivity data for specific days across years, grouped by year",
-                "path": "connectivity",
-                "format": "csv"
-            },
-            {
-                "name": "spatial_data",
-                "description": "Spatial data of cluster.",
-                "path": f"spatial/{domain_name}.gpkg",
-                "format": "geopackage",
-                "location_id_col": location_id_col,
-                "cluster_id_col": cluster_id_col,
-                "k_col": k_col,
-                "area_col": area_col
-            },
-            {
-                "name": "coral_cover",
-                "description": "Initial coral cover for ADRIA Domain.",
-                "path": "spatial/coral_cover.nc",
-                "format": "netCDF"
-            },
-            {
-                "name": "DHWs",
-                "description": "Degree heating week data." if dhw_meta_path else "No data provided/available.",
-                "path": "DHWs" if dhw_meta_path else "",
-                "format": "netCDF"
-            },
-            {
-                "name": "waves",
-                "description": "No data provided/available.",
-                "path": "",
-                "format": "netCDF"
-            },
-            {
-                "name": "cyclones",
-                "description": "No data provided/available.",
-                "path": "",
-                "format": "netCDF"
-            }
-        ]
-    }
-
-    # Add num_locations to simulation_metadata
+    # Calculate dynamic values for template
+    timeframe_list_str = str(list(map(int, timeframe.split(" "))))
+    
+    num_locations_val = "null" # Default to null if GeoPackage not found or read fails
     gpkg_path = pj(output_dir, "spatial", f"{domain_name}.gpkg")
     if exists(gpkg_path):
         try:
             gdf = gpd.read_file(gpkg_path)
-            dpkg["simulation_metadata"]["num_locations"] = len(gdf)
+            num_locations_val = str(len(gdf)) # Convert to string for template
         except Exception as e:
             print(f"Warning: Could not read geopackage at {gpkg_path} to determine num_locations. Error: {e}")
+
+    dhw_desc_val = "Degree heating week data." if dhw_meta_path else "No data provided/available."
+    dhw_path_val = "DHWs" if dhw_meta_path else ""
+
+    # Read and format the template
+    template_path = pj(PKG_PATH, "format_gbr", "datapackage.json.template")
+    with open(template_path, "r") as f:
+        template_content = f.read()
+
+    template = Template(template_content)
+    formatted_template = template.substitute(
+        domain_name=domain_name,
+        domain_title=f"{domain_name} Domain",
+        version=DATAPACKAGE_VERSION,
+        timeframe_list=timeframe_list_str,
+        num_locations=num_locations_val,
+        location_id_col=location_id_col,
+        cluster_id_col=cluster_id_col,
+        k_col=k_col,
+        area_col=area_col,
+        dhw_desc=dhw_desc_val,
+        dhw_path=dhw_path_val,
+        waves_desc=waves_desc,
+        waves_path=waves_path,
+        cyclones_desc=cyclones_desc,
+        cyclones_path=cyclones_path
+    )
+    dpkg = json.loads(formatted_template)
 
     meta_files = {
         "Canonical": canonical_meta_path,
@@ -196,11 +178,43 @@ def format_dhw(
     format_rcps = [rcps_fn[rcp] for rcp in rcps_tuple]
     ssps = [rcps_to_ssps[rcp] for rcp in rcps_tuple]
     search_paths = [pj(source_dir, f"*{ssp}*") for ssp in ssps]
-    netcdf_files = [glob(search_path) for search_path in search_paths]
+    netcdf_files = [sorted(glob(search_path)) for search_path in search_paths]
     output_fps = [pj(output_dir, f"dhwRCP{rcp}.nc") for rcp in format_rcps]
 
     for (src_files, out_fp) in zip(netcdf_files, output_fps):
         format_single_rcp_dhw(src_files, out_fp, _timeframe)
+
+    # Update README with GCM info
+    readme_path = pj(os.path.dirname(output_dir), "README.md")
+    if exists(readme_path) and netcdf_files and netcdf_files[0]:
+        # Assuming all RCPs have the same GCMs in the same order
+        # Use the first RCP list to extract GCMs
+        first_rcp_files = netcdf_files[0]
+        gcms_list = []
+        for fp in first_rcp_files:
+            filename = basename(fp)
+            # Expected format: CoralSea_GBR_GCMNAME_...
+            parts = filename.split("_")
+            if len(parts) > 2:
+                gcms_list.append(parts[2])
+            else:
+                gcms_list.append("Unknown")
+        
+        # Group and calculate ranges (files are sorted, so identical GCMs are adjacent)
+        grouped_gcms = [(key, len(list(group))) for key, group in groupby(gcms_list)]
+
+        with open(readme_path, "a") as f:
+            f.write("\n\n## DHW Climate Models\n\n")
+            f.write("The `model` dimension in the DHW NetCDF files corresponds to the following climate models (indices are 1-based):\n\n")
+            
+            current_idx = 1
+            for gcm, count in grouped_gcms:
+                end_idx = current_idx + count - 1
+                if count > 1:
+                    f.write(f"*   {gcm} ({current_idx}:{end_idx})\n")
+                else:
+                    f.write(f"*   {gcm} ({current_idx})\n")
+                current_idx += count
 
     return None
 
@@ -245,6 +259,28 @@ def format_icc(
 
 
 
+def _write_domain_readme(output_dir: str, domain_name: str, version: str, spatial_cols: dict):
+    readme_path = pj(output_dir, "README.md")
+    template_path = pj(PKG_PATH, "format_gbr", "domain_readme.md.template")
+    
+    with open(template_path, "r") as f:
+        template = f.read()
+    
+    date_str = datetime.today().strftime('%Y-%m-%d')
+    
+    content = template.format(
+        domain_name=domain_name,
+        date_str=date_str,
+        version=version,
+        location_id_col=spatial_cols.get('location_id_col', 'UNIQUE_ID'),
+        area_col=spatial_cols.get('area_col', 'ReefMod_area_m2'),
+        k_col=spatial_cols.get('k_col', 'ReefMod_habitable_proportion'),
+        cluster_id_col=spatial_cols.get('cluster_id_col', 'UNIQUE_ID')
+    )
+    
+    with open(readme_path, "w") as f:
+        f.write(content)
+
 @app.command(help="Generate a GBR-wide ADRIA Domain from local files.")
 def generate_domain_from_local(
     output_dir: str,
@@ -252,9 +288,22 @@ def generate_domain_from_local(
     dhw_path: str,
     rme_path: str,
     rcps: str = typer.Option("2.6 4.5 7.0 8.5"),
-    timeframe: str = typer.Option("2025 2099")
+    timeframe: str = typer.Option("2025 2099"),
+    location_id_col: str = typer.Option("UNIQUE_ID"),
+    cluster_id_col: str = typer.Option("UNIQUE_ID"),
+    k_col: str = typer.Option("ReefMod_habitable_proportion"),
+    area_col: str = typer.Option("ReefMod_area_m2")
 ):
     generate_dpkg(output_dir)
+    
+    # Overwrite README with custom GBR template
+    spatial_cols = {
+        "location_id_col": location_id_col,
+        "cluster_id_col": cluster_id_col,
+        "k_col": k_col,
+        "area_col": area_col
+    }
+    _write_domain_readme(output_dir, basename(output_dir), DATAPACKAGE_VERSION.replace(".", ""), spatial_cols)
 
     format_dhw(dhw_path, pj(output_dir, "DHWs"), rcps, timeframe)
     format_connectivity(rme_path, canonical_gpkg, pj(output_dir, "connectivity"))
@@ -295,6 +344,15 @@ def generate_domain_from_store(
     k_col = spatial_cfg.get("k_col", "ReefMod_habitable_proportion")
     area_col = spatial_cfg.get("area_col", "ReefMod_area_m2")
 
+    # Waves and Cyclones
+    waves_cfg = cfg.get("waves", {})
+    waves_path = waves_cfg.get("path", "")
+    waves_desc = waves_cfg.get("description", "No data provided/available.")
+
+    cyclones_cfg = cfg.get("cyclones", {})
+    cyclones_path = cyclones_cfg.get("path", "")
+    cyclones_desc = cyclones_cfg.get("description", "No data provided/available.")
+    
     # Construct output directory path
     date_str = datetime.today().strftime('%Y-%m-%d')
     version_str = DATAPACKAGE_VERSION.replace(".", "")
@@ -365,7 +423,7 @@ def generate_domain_from_store(
             raise typer.BadParameter("Either handle or path must be specified for the ReefMod Engine dataset in configuration.")
 
         print("Formatting domain...")
-        generate_domain_from_local(output_dir, canonical_gpkg_resolved_path, dhw_resolved_path, rme_resolved_path, rcps, timeframe)
+        generate_domain_from_local(output_dir, canonical_gpkg_resolved_path, dhw_resolved_path, rme_resolved_path, rcps, timeframe, location_id_col, cluster_id_col, k_col, area_col)
 
         _update_datapackage(
             output_dir, 
@@ -379,7 +437,11 @@ def generate_domain_from_store(
             area_col,
             canonical_handle=canonical_gpkg_handle,
             dhw_handle=dhw_handle,
-            rme_handle=rme_handle
+            rme_handle=rme_handle,
+            waves_path=waves_path,
+            waves_desc=waves_desc,
+            cyclones_path=cyclones_path,
+            cyclones_desc=cyclones_desc
         )
     
     return None

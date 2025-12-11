@@ -47,6 +47,16 @@ handle = "10378.1/345678"
 [options]
 rcps = "2.6 4.5 7.0 8.5"
 timeframe = "2025 2060"
+
+[waves]
+# handle = "10378.1/WAVE_HANDLE"
+path = "/local/path/to/wave_data"
+description = "Description of wave data"
+
+[cyclones]
+# handle = "10378.1/CYCLONE_HANDLE"
+path = "/local/path/to/cyclone_data"
+description = "Description of cyclone data"
 ```
 
 ### Output Structure
