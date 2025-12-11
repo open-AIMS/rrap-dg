@@ -183,3 +183,116 @@ def format_connectivity_file(
     connectivity.columns = unique_ids
 
     return connectivity
+
+
+def format_csv_dhw_model_group(
+    csv_files: list[str],
+    output_filepath: str,
+    timeframe: tuple,
+    canonical_ids: list[str],
+    lats: list[float],
+    lons: list[float],
+) -> None:
+    """
+    Formats a group of CSV DHW files (representing one RCP/Scenario) into a NetCDF.
+    
+    Args:
+        csv_files: List of paths to CSV files (one per GCM).
+        output_filepath: Output NetCDF path.
+        timeframe: (start_year, end_year) tuple.
+        canonical_ids: List of location IDs in the desired order.
+        lats: List of latitudes corresponding to canonical_ids.
+        lons: List of longitudes corresponding to canonical_ids.
+    """
+    if not csv_files:
+        return
+
+    n_sims = len(csv_files)
+    n_locs = len(canonical_ids)
+    start_year, end_year = timeframe
+    n_years = end_year - start_year + 1
+
+    # Initialize data array: (model, locations, timesteps)
+    dhw_data = np.zeros((n_sims, n_locs, n_years))
+    
+    # Pre-calculate column names for the timeframe
+    # Assuming CSV columns are just year numbers as strings or ints.
+    # We'll check the header of the first file to be sure.
+    
+    for i, csv_path in enumerate(csv_files):
+        # Read CSV. Assuming header exists.
+        df = pd.read_csv(csv_path)
+        
+        # Identify ID column (first column) and year columns
+        # User said: "first column is ids... other columns are for 2000 onwards"
+        # We assume the header for the first column might be specific, but usually it's ignored or 'reef_id'
+        # The other headers should be years '2000', '2001', etc.
+        
+        # Set first column as index (Location IDs)
+        df.set_index(df.columns[0], inplace=True)
+        
+        # Reindex to match canonical_ids
+        # This aligns rows and fills missing with NaN (though we expect full coverage)
+        df = df.reindex(canonical_ids)
+        
+        # Select columns for the timeframe
+        # Convert column names to integers to support selecting by range
+        # Note: df.columns might be strings.
+        try:
+            # Create a map of year -> column_name
+            cols_map = {int(c): c for c in df.columns if str(c).isdigit()}
+        except ValueError:
+            # Fallback if headers aren't clean years
+            raise ValueError(f"CSV headers in {csv_path} do not appear to be years.")
+            
+        target_years = range(start_year, end_year + 1)
+        missing_years = [y for y in target_years if y not in cols_map]
+        if missing_years:
+             raise ValueError(f"Years {missing_years} missing in {csv_path}")
+             
+        selected_cols = [cols_map[y] for y in target_years]
+        
+        # Extract data
+        subset = df[selected_cols].values # Shape (n_locs, n_years)
+        
+        dhw_data[i, :, :] = subset
+
+    # Write to NetCDF
+    with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
+        # Define Dimensions
+        nc_out.createDimension("model", n_sims)
+        nc_out.createDimension("locations", n_locs)
+        nc_out.createDimension("timesteps", n_years)
+
+        # Define Variables
+        lon_ID = nc_out.createVariable("longitude", "f8", ("locations",))
+        lat_ID = nc_out.createVariable("latitude", "f8", ("locations",))
+        time_ID = nc_out.createVariable("timesteps", "i4", ("timesteps",))
+        # GBRMPA_ID = nc_out.createVariable("GBRMPA_ID", str, ("locations",)) # Not available from CSV usually, skipping or using canonical IDs
+        unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        
+        # For consistency with existing formatters, we might include location_ID
+        # location_ID = nc_out.createVariable("locations", str, ("locations",))
+
+        dhw_ID = nc_out.createVariable(
+            "dhw", "f8", ("model", "locations", "timesteps")
+        )
+
+        # Attributes
+        lon_ID.units = "degrees_east"
+        lat_ID.units = "degrees_north"
+        time_ID.units = "year"
+        
+        dhw_ID.units = "DegC-week"
+        dhw_ID.long_name = "degree heating week"
+        dhw_ID.missing_value = 1.0e35
+
+        # Fill Variables
+        lon_ID[:] = lons
+        lat_ID[:] = lats
+        time_ID[:] = list(range(start_year, end_year + 1))
+        unique_ID[:] = np.array(canonical_ids).astype(str)
+        
+        dhw_ID[:] = dhw_data
+
+    return None

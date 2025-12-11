@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import datetime
 import json
-from string import Template
 try:
     import tomllib
 except ImportError:
@@ -22,15 +21,15 @@ class DomainBuilder:
     def __init__(self, config_path: str, output_parent_dir: str):
         self.config_path = config_path
         self.config = self._load_config()
-        
+
         # Use persistent cache directory
         settings = get_settings()
         self._cache_dir = settings.data_store_cache_dir
         os.makedirs(self._cache_dir, exist_ok=True)
-        
+
         # Pass all source configurations directly to the SourceManager
         self.source_manager = SourceManager(self._cache_dir, self.config.sources)
-        
+
         # Construct the final output directory path based on naming convention
         date_str = datetime.date.today().strftime('%Y-%m-%d')
         version_str = DATAPACKAGE_VERSION.replace(".", "")
@@ -54,6 +53,14 @@ class DomainBuilder:
         # Create final output directory and initial structure using dpkg_template
         # This creates basic folders and empty datapackage.json/README.md
         generate_dpkg(self._final_output_dir) 
+
+        # Enforce spatial filename convention: spatial/<domain_dir_name>.gpkg
+        domain_dir_name = os.path.basename(self._final_output_dir)
+        for output in self.config.outputs.values():
+            if output.type == "spatial_data":
+                new_filename = os.path.join("spatial", f"{domain_dir_name}.gpkg")
+                print(f"Enforcing spatial filename: {new_filename}")
+                output.filename = new_filename
 
         # Process each output
         for output_name, output in self.config.outputs.items():
@@ -92,7 +99,8 @@ class DomainBuilder:
         
         # Extract metadata from source handles and global options
         sources_list = []
-        contributors_dict = {}
+        # Dictionary to track contributors. Key: email, Value: {info..., "datasets": []}
+        contributors_map = {}
 
         for source_key, source_config in self.config.sources.items():
             handle = source_config.handle
@@ -106,21 +114,25 @@ class DomainBuilder:
                         dataset_info = meta.get("dataset_info", {})
                         associations = meta.get("associations", {})
                         
+                        ds_title = dataset_info.get("name", f"{source_key} Dataset")
                         sources_list.append({
-                            "title": dataset_info.get("name", f"{source_key} Dataset"),
+                            "title": ds_title,
                             "description": dataset_info.get("description", ""),
                             "path": resolved_path, # Or a relative path
                             "handle": handle or ""
                         })
 
                         contact = associations.get("point_of_contact")
-                        if contact and contact not in contributors_dict:
-                            contributors_dict[contact] = {
-                                "title": contact.split("@")[0],
-                                "email": contact,
-                                "role": "author",
-                                "description": f"Point of contact for {source_key} dataset"
-                            }
+                        if contact:
+                            if contact not in contributors_map:
+                                contributors_map[contact] = {
+                                    "title": contact.split("@")[0],
+                                    "email": contact,
+                                    "role": "author",
+                                    "datasets": [] 
+                                }
+                            contributors_map[contact]["datasets"].append(ds_title)
+                            
                     except json.JSONDecodeError:
                         print(f"Warning: Could not decode metadata file for source '{source_key}' at {meta_path}")
             elif handle:
@@ -140,6 +152,17 @@ class DomainBuilder:
                     "handle": ""
                  })
 
+        # Format contributors list
+        contributors_list = []
+        for contact_email, info in contributors_map.items():
+            datasets_str = ", ".join(info["datasets"])
+            contributors_list.append({
+                "title": info["title"],
+                "email": info["email"],
+                "role": info["role"],
+                "description": f"Point of contact for: {datasets_str}"
+            })
+
         # Dynamically determine num_locations if spatial geopackage is generated
         num_locations_val = None # Initialize as None, will be replaced with int if found
         spatial_output = next((out for out in self.config.outputs.values() if out.type == "spatial_data"), None)
@@ -152,10 +175,10 @@ class DomainBuilder:
                     num_locations_val = len(gdf) # Store as int directly
                 except Exception as e:
                     print(f"Warning: Could not read geopackage at {gpkg_path} to determine num_locations. Error: {e}")
-        
+
         # Extract global options for template substitution
         global_opts = self.config.global_options
-        
+
         # Populate resources based on actual outputs
         resources_list = []
         for output_name, output_config in self.config.outputs.items():
@@ -171,7 +194,7 @@ class DomainBuilder:
                 resource["cluster_id_col"] = global_opts.get("cluster_id_col", "UNIQUE_ID")
                 resource["k_col"] = global_opts.get("k_col", "ReefMod_habitable_proportion")
                 resource["area_col"] = global_opts.get("area_col", "ReefMod_area_m2")
-            
+
             resources_list.append(resource)
 
         # Construct the datapackage dictionary directly
@@ -185,7 +208,7 @@ class DomainBuilder:
                 "timeframe": list(map(int, global_opts.get("timeframe", "2025 2099").split(" "))),
                 "num_locations": num_locations_val
             },
-            "contributors": list(contributors_dict.values()),
+            "contributors": contributors_list,
             "resources": resources_list
         }
 
@@ -196,12 +219,12 @@ class DomainBuilder:
     def _generate_domain_readme(self):
         readme_path = os.path.join(self._final_output_dir, "README.md")
         template_path = os.path.join(PKG_PATH, "format_gbr", "domain_readme.md.template")
-        
+
         with open(template_path, "r") as f:
             template_content = f.read()
-        
+
         date_str = datetime.date.today().strftime('%Y-%m-%d')
-        
+
         # Prepare substitution dictionary for the README template
         substitutions = {
             "domain_name": self.config.domain_name,
@@ -212,7 +235,7 @@ class DomainBuilder:
             "k_col": self.config.global_options.get("k_col", "ReefMod_habitable_proportion"),
             "cluster_id_col": self.config.global_options.get("cluster_id_col", "UNIQUE_ID")
         }
-        
+
         # Add descriptions for generated outputs based on their 'description' in options
         # Ensure default values are provided if output.options.get('description') is None
         for output_name, output_config in self.config.outputs.items():
@@ -222,16 +245,15 @@ class DomainBuilder:
                 substitutions["waves_desc"] = output_config.options.get("description", "Wave data.")
             elif output_config.type == "cyclones":
                 substitutions["cyclones_desc"] = output_config.options.get("description", "Cyclone mortality data.")
-        
+
         # Fill in missing descriptions if types not found in outputs
         substitutions.setdefault("dhw_desc", "No DHW data provided/available.")
         substitutions.setdefault("waves_desc", "No wave data provided/available.")
         substitutions.setdefault("cyclones_desc", "No cyclone data provided/available.")
 
 
-        template = Template(template_content)
-        content = template.substitute(**substitutions)
-        
+        content = template_content.format(**substitutions)
+
         with open(readme_path, "w") as f:
             f.write(content)
         print(f"Generated {readme_path}")
