@@ -1,0 +1,28 @@
+# {domain_name}_{date_str}_v{version}
+
+## Overview of data included in this data package
+
+### Spatial
+Spatial data relating to the {domain_name} domain.
+Consists of a geopackage file: `{domain_name}.gpkg`.
+
+Pertinent columns are:
+*   `location_id_col` : {location_id_col}
+*   `area_col` (in m^2) : {area_col}
+*   `k_col` : maximum carrying capacity for the associated site (in percentage values, gets divided by 100 in ADRIA) : {k_col}
+*   `cluster_id_col` : {cluster_id_col}
+
+### Connectivity
+Connectivity data for specific days across years, grouped by year.
+
+### Cyclone mortality
+No cyclone mortality data provided in this data package.
+
+### DHWs
+Degree heating week data.
+
+### Wave data
+No wave data provided in this data package.
+
+### Initial coral cover
+Initial coral cover for ADRIA Domain.
