@@ -2,6 +2,7 @@ from provenaclient import ProvenaClient, Config
 from provenaclient.auth import DeviceFlow
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pathlib import Path
 
 class Settings(BaseSettings):
     # The provena deployment to target
@@ -10,6 +11,9 @@ class Settings(BaseSettings):
     provena_realm_name: str = "rrap"
     # The keycloak client ID
     provena_client_id: str = "automated-access"
+    
+    # Data store cache directory
+    data_store_cache_dir: str = str(Path.home() / ".cache" / "rrap-dg")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

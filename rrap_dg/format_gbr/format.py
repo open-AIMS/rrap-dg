@@ -28,6 +28,6 @@ def build_domain(
     builder = DomainBuilder(config_path, output_parent_dir)
     try:
         builder.build()
-        print(f"Domain '{builder.config.domain_name}' built successfully at {builder.config.output_dir}")
+        print(f"Domain '{builder.config.domain_name}' built successfully at {builder.output_dir}")
     finally:
         builder.cleanup()

@@ -10,8 +10,8 @@ class SourceManager:
     Manages the resolution and retrieval of data sources.
     Ensures that handles are downloaded only once.
     """
-    def __init__(self, temp_dir: str, source_configs: Dict[str, SourceConfig]):
-        self.temp_dir = temp_dir
+    def __init__(self, cache_dir: str, source_configs: Dict[str, SourceConfig]):
+        self.cache_dir = cache_dir
         self.source_configs = source_configs
         self.resolved_paths: Dict[str, str] = {}
         self.metadata_paths: Dict[str, Optional[str]] = {} # New: Stores path to metadata.json for handles
@@ -42,18 +42,20 @@ class SourceManager:
             return config.path
 
         if config.handle:
-            download_dest = os.path.join(self.temp_dir, source_name)
+            # Use sanitized handle as directory name to ensure uniqueness and caching across different configs
+            sanitized_handle = config.handle.replace("/", "_")
+            download_dest = os.path.join(self.cache_dir, sanitized_handle)
             
             # Check if already downloaded in this session or previously
             # (Simple check: if directory exists and is not empty)
             if os.path.exists(download_dest) and os.listdir(download_dest):
-                print(f"Source '{source_name}' found in cache: {download_dest}")
+                print(f"Source '{source_name}' (Handle: {config.handle}) found in cache: {download_dest}")
                 self.resolved_paths[source_name] = download_dest
                 meta_path = os.path.join(download_dest, "metadata.json")
                 self.metadata_paths[source_name] = meta_path if os.path.exists(meta_path) else None
                 return download_dest
             
-            print(f"Downloading source '{source_name}' (handle: {config.handle})...")
+            print(f"Downloading source '{source_name}' (handle: {config.handle}) to {download_dest}...")
             try:
                 import asyncio
                 client = self.get_provena_client()

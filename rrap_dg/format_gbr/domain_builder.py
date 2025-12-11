@@ -11,6 +11,7 @@ except ImportError:
 from typing import Dict, Optional, Any
 
 from rrap_dg import DATAPACKAGE_VERSION, PKG_PATH # Import DATAPACKAGE_VERSION and PKG_PATH
+from rrap_dg.config import get_settings
 from rrap_dg.dpkg_template.dpkg_template import generate as generate_dpkg # Import dpkg_template generator
 from .config_model import DomainConfig
 from .source_manager import SourceManager
@@ -21,10 +22,14 @@ class DomainBuilder:
     def __init__(self, config_path: str, output_parent_dir: str):
         self.config_path = config_path
         self.config = self._load_config()
-        # Use a temporary directory for downloads that persists for the builder's life
-        self._temp_dir = tempfile.mkdtemp(prefix="rrap_dg_builder_")
+        
+        # Use persistent cache directory
+        settings = get_settings()
+        self._cache_dir = settings.data_store_cache_dir
+        os.makedirs(self._cache_dir, exist_ok=True)
+        
         # Pass all source configurations directly to the SourceManager
-        self.source_manager = SourceManager(self._temp_dir, self.config.sources)
+        self.source_manager = SourceManager(self._cache_dir, self.config.sources)
         
         # Construct the final output directory path based on naming convention
         date_str = datetime.date.today().strftime('%Y-%m-%d')
@@ -33,6 +38,10 @@ class DomainBuilder:
             output_parent_dir, # Use the argument here
             f"{self.config.domain_name}_{date_str}_v{version_str}"
         )
+
+    @property
+    def output_dir(self) -> str:
+        return self._final_output_dir
 
     def _load_config(self) -> DomainConfig:
         with open(self.config_path, "rb") as f:
@@ -228,5 +237,5 @@ class DomainBuilder:
         print(f"Generated {readme_path}")
 
     def cleanup(self):
-        if os.path.exists(self._temp_dir):
-            shutil.rmtree(self._temp_dir)
+        # Cache is persistent, so we don't clean it up automatically.
+        pass
