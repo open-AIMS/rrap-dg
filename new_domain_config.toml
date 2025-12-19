@@ -1,0 +1,45 @@
+# Global Domain Settings
+domain_name = "GBR_Domain"
+
+# 1. Sources: Define where your data comes from
+# Mapped from the old config file handles
+[sources]
+    [sources.spatial_base]
+    handle = "102.100.100/711118"
+
+    [sources.dhw_data]
+    handle = "102.100.100/705397"
+
+    [sources.rme_data]
+    handle = "102.100.100/705924"
+
+# 2. Outputs: Define what files to generate
+# Use [outputs.key] to define outputs as a dictionary
+
+# Generate Connectivity Data
+[outputs.connectivity]
+type = "connectivity"
+formatter = "rme_connectivity"
+source = "rme_data"
+filename = "connectivity" # Output directory for CSVs
+[outputs.connectivity.options]
+    spatial_source = "spatial_base"
+
+# Generate Degree Heating Weeks (DHWs)
+[outputs.dhw]
+type = "dhw"
+formatter = "standard_netcdf_dhw"
+source = "dhw_data"
+filename = "DHWs" # Output directory for NetCDFs
+[outputs.dhw.options]
+    rcps = "2.6 4.5 7.0 8.5"
+    timeframe = "2025 2099"
+
+# Generate Initial Coral Cover
+[outputs.coral_cover]
+type = "initial_coral_cover"
+formatter = "gbr_icc"
+source = "rme_data"
+filename = "spatial/coral_cover.nc"
+[outputs.coral_cover.options]
+    canonical_source = "spatial_base"

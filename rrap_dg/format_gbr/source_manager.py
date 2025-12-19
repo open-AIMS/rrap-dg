@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Optional
 from glob import glob
-from rrap_dg.data_store.data_store import download_to_cache
+from rrap_dg.data_store.data_store import fetch_dataset
 from .config_model import SourceConfig
 from .exceptions import SourceError, ConfigurationError
 
@@ -37,7 +37,7 @@ class SourceManager:
 
         if config.handle:
             try:
-                download_dest = download_to_cache(config.handle)
+                download_dest = fetch_dataset(config.handle)
                 self.resolved_paths[source_name] = download_dest
                 meta_path = os.path.join(download_dest, "metadata.json")
                 self.metadata_paths[source_name] = meta_path if os.path.exists(meta_path) else None
