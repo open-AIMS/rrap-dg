@@ -22,6 +22,8 @@ jl_icc.seval(f'include("{PKG_PATH}/initial_coral_cover/icc.jl")')
 class Formatter(ABC):
     """Abstract base class for data formatters."""
     
+    description: str = "Generic formatter"
+
     @abstractmethod
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         """
@@ -65,6 +67,8 @@ class RMEConnectivityFormatter(Formatter):
     Formats connectivity data from ReefMod Engine output.
     Requires a secondary 'spatial_source' option for the canonical geopackage.
     """
+    description = "Transforms ReefMod Engine connectivity CSVs (headerless) into a labeled CSV format, aligning locations with the canonical domain IDs."
+
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         spatial_source_key = options.get("spatial_source")
         if not spatial_source_key:
@@ -122,6 +126,8 @@ class DHWFormatter(Formatter):
     """
     Formats Degree Heating Week (DHW) NetCDF files.
     """
+    description = "Standardizes Degree Heating Week (DHW) NetCDF files into the project's expected structure and naming convention."
+
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         rcps_opt = options.get("rcps", "2.6 4.5 7.0 8.5")
         timeframe_opt = options.get("timeframe", "2025 2099")
@@ -188,6 +194,8 @@ class RMEDHWFormatter(Formatter):
     Formats DHW data provided as CSVs (one per GCM) in the RME data structure.
     Requires 'spatial_source' to align with canonical IDs.
     """
+    description = "Converts ReefMod Engine CSV-based DHW projections (one file per GCM) into standardized NetCDF files."
+
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         spatial_source_key = options.get("spatial_source")
         if not spatial_source_key:
@@ -307,6 +315,8 @@ class GBRICCFormatter(Formatter):
     Formats Initial Coral Cover (ICC) data for the GBR by calling Julia functions.
     Requires a secondary 'canonical_source' option for the canonical geopackage.
     """
+    description = "Aggregates ReefMod Engine Initial Coral Cover (ICC) CSVs by averaging over repeats, converting percentages to proportions, and aligning with the canonical domain IDs, then saving as a NetCDF."
+
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         canonical_source_key = options.get("canonical_source")
         if not canonical_source_key:
@@ -336,6 +346,8 @@ class MoveFileFormatter(Formatter):
     from the source_path to the output_path.
     Expects 'filename_or_pattern' in options.
     """
+    description = "Copies a specific file or files matching a pattern from the source to the destination."
+
     def format(self, source_path: str, output_path: str, options: Dict[str, Any], source_manager) -> None:
         filename_or_pattern = options.get("filename_or_pattern")
         if not filename_or_pattern:
