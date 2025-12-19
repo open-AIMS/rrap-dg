@@ -54,9 +54,6 @@ class DomainBuilder:
         # This creates basic folders and empty datapackage.json/README.md
         generate_dpkg(self._final_output_dir) 
 
-        # Generate base README so formatters can append to it
-        self._generate_domain_readme()
-
         # Enforce spatial filename convention: spatial/<domain_dir_name>.gpkg
         domain_dir_name = os.path.basename(self._final_output_dir)
         for output in self.config.outputs.values():
@@ -217,74 +214,6 @@ class DomainBuilder:
         with open(dpkg_path, "w") as f:
             json.dump(datapackage_dict, f, indent=4)
         print(f"Generated {dpkg_path}")
-
-    def _generate_domain_readme(self):
-        readme_path = os.path.join(self._final_output_dir, "README.md")
-        template_path = os.path.join(PKG_PATH, "format_gbr", "domain_readme.md.template")
-
-        with open(template_path, "r") as f:
-            template_content = f.read()
-
-        date_str = datetime.date.today().strftime('%Y-%m-%d')
-
-        # Prepare substitution dictionary for the README template
-        substitutions = {
-            "domain_name": self.config.domain_name,
-            "date_str": date_str,
-            "version": DATAPACKAGE_VERSION.replace(".", ""),
-            "location_id_col": self.config.global_options.get("location_id_col", "UNIQUE_ID"),
-            "area_col": self.config.global_options.get("area_col", "ReefMod_area_m2"),
-            "k_col": self.config.global_options.get("k_col", "ReefMod_habitable_proportion"),
-            "cluster_id_col": self.config.global_options.get("cluster_id_col", "UNIQUE_ID")
-        }
-
-        # Add descriptions for generated outputs based on their 'description' in options
-        # Ensure default values are provided if output.options.get('description') is None
-        for output_name, output_config in self.config.outputs.items():
-            if output_config.type == "dhw":
-                substitutions["dhw_desc"] = output_config.options.get("description", "Degree heating week data.")
-            elif output_config.type == "waves":
-                substitutions["waves_desc"] = output_config.options.get("description", "Wave data.")
-            elif output_config.type == "cyclones":
-                substitutions["cyclones_desc"] = output_config.options.get("description", "Cyclone mortality data.")
-
-        # Fill in missing descriptions if types not found in outputs
-        substitutions.setdefault("dhw_desc", "No DHW data provided/available.")
-        substitutions.setdefault("waves_desc", "No wave data provided/available.")
-        substitutions.setdefault("cyclones_desc", "No cyclone data provided/available.")
-
-
-        content = template_content.format(**substitutions)
-
-        # Construct dynamic processing details section
-        processing_details = "\n\n## Data Processing Details\n"
-        for output_name, output_config in self.config.outputs.items():
-            # 1. Get Formatter Description
-            formatter_instance = FormatterRegistry.get(output_config.formatter)
-            formatter_desc = formatter_instance.description
-
-            # 2. Get Source Description from Metadata
-            source_desc = "No source metadata available."
-            try:
-                # Ensure source is resolved (downloads if necessary)
-                self.source_manager.resolve_source_path(output_config.source)
-                meta_path = self.source_manager.get_source_metadata_path(output_config.source)
-                
-                if meta_path and os.path.exists(meta_path):
-                    with open(meta_path, "r") as f:
-                        meta = json.load(f)
-                        source_desc = meta.get("dataset_info", {}).get("description", source_desc)
-            except Exception as e:
-                print(f"Warning: Could not retrieve metadata for {output_name}: {e}")
-
-            # 3. Append to details
-            processing_details += f"\n### {output_name}\n"
-            processing_details += f"**Source Description:** {source_desc}\n\n"
-            processing_details += f"**Formatter Logic ({output_config.formatter}):** {formatter_desc}\n"
-
-        with open(readme_path, "w") as f:
-            f.write(content + processing_details)
-        print(f"Generated {readme_path}")
 
     def cleanup(self):
         # Cache is persistent, so we don't clean it up automatically.

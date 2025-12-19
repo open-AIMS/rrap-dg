@@ -156,38 +156,6 @@ class DHWFormatter(Formatter):
                 print(f"Warning: No source files found for RCP corresponding to {out_fp}")
                 continue
             format_single_rcp_dhw(src_files, out_fp, _timeframe)
-            
-        # Optional: Update README with GCM info
-        domain_dir = os.path.dirname(output_path)
-        readme_path = pj(domain_dir, "README.md")
-        
-        if os.path.exists(readme_path) and netcdf_files and netcdf_files[0]:
-            self._update_readme(readme_path, netcdf_files[0])
-
-    def _update_readme(self, readme_path: str, first_rcp_files: list):
-        gcms_list = []
-        for fp in first_rcp_files:
-            filename = basename(fp)
-            parts = filename.split("_")
-            if len(parts) > 2:
-                gcms_list.append(parts[2])
-            else:
-                gcms_list.append("Unknown")
-        
-        grouped_gcms = [(key, len(list(group))) for key, group in groupby(gcms_list)]
-
-        with open(readme_path, "a") as f:
-            f.write("\n\n## DHW Climate Models\n\n")
-            f.write("The `model` dimension in the DHW NetCDF files corresponds to the following climate models (indices are 1-based):\n\n")
-            
-            current_idx = 1
-            for gcm, count in grouped_gcms:
-                end_idx = current_idx + count - 1
-                if count > 1:
-                    f.write(f"*   {gcm} ({current_idx}:{end_idx})\n")
-                else:
-                    f.write(f"*   {gcm} ({current_idx})\n")
-                current_idx += count
 
 class RMEDHWFormatter(Formatter):
     """
@@ -276,39 +244,6 @@ class RMEDHWFormatter(Formatter):
                 lats, 
                 lons
             )
-
-        # Update README with model info
-        domain_dir = os.path.dirname(output_path)
-        readme_path = pj(domain_dir, "README.md")
-        if os.path.exists(readme_path) and example_rcp_files:
-            self._update_readme(readme_path, example_rcp_files)
-
-    def _update_readme(self, readme_path: str, files: list):
-        gcms_list = []
-        for fp in files:
-            filename = basename(fp)
-            # Regex to extract model name before the scenario part (e.g. SSP126, 126, 370)
-            # Matches anything up to the underscore before (SSP)?\d{3}
-            match = re.search(r"^(.*?)_(?:SSP)?\d{3}", filename)
-            if match:
-                gcms_list.append(match.group(1))
-            else:
-                gcms_list.append(filename) # Fallback
-
-        grouped_gcms = [(key, len(list(group))) for key, group in groupby(gcms_list)]
-
-        with open(readme_path, "a") as f:
-            f.write("\n\n## DHW Climate Models (RME Source)\n\n")
-            f.write("The `model` dimension in the DHW NetCDF files corresponds to the following climate models (indices are 1-based):\n\n")
-            
-            current_idx = 1
-            for gcm, count in grouped_gcms:
-                end_idx = current_idx + count - 1
-                if count > 1:
-                    f.write(f"*   {gcm} ({current_idx}:{end_idx})\n")
-                else:
-                    f.write(f"*   {gcm} ({current_idx})\n")
-                current_idx += count
 
 class GBRICCFormatter(Formatter):
     """
