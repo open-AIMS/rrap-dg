@@ -256,8 +256,34 @@ class DomainBuilder:
 
         content = template_content.format(**substitutions)
 
+        # Construct dynamic processing details section
+        processing_details = "\n\n## Data Processing Details\n"
+        for output_name, output_config in self.config.outputs.items():
+            # 1. Get Formatter Description
+            formatter_instance = FormatterRegistry.get(output_config.formatter)
+            formatter_desc = formatter_instance.description
+
+            # 2. Get Source Description from Metadata
+            source_desc = "No source metadata available."
+            try:
+                # Ensure source is resolved (downloads if necessary)
+                self.source_manager.resolve_source_path(output_config.source)
+                meta_path = self.source_manager.get_source_metadata_path(output_config.source)
+                
+                if meta_path and os.path.exists(meta_path):
+                    with open(meta_path, "r") as f:
+                        meta = json.load(f)
+                        source_desc = meta.get("dataset_info", {}).get("description", source_desc)
+            except Exception as e:
+                print(f"Warning: Could not retrieve metadata for {output_name}: {e}")
+
+            # 3. Append to details
+            processing_details += f"\n### {output_name}\n"
+            processing_details += f"**Source Description:** {source_desc}\n\n"
+            processing_details += f"**Formatter Logic ({output_config.formatter}):** {formatter_desc}\n"
+
         with open(readme_path, "w") as f:
-            f.write(content)
+            f.write(content + processing_details)
         print(f"Generated {readme_path}")
 
     def cleanup(self):
