@@ -7,6 +7,7 @@ from asyncio import run
 app = typer.Typer()
 
 
+@app.command(help="Download data from RRAP M&DS Data Store by handle id and save to cache.")
 def fetch_dataset(handle_id: str, force: bool = False) -> str:
     """
     Retrieves a dataset, using the system cache if available.
