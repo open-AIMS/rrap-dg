@@ -88,3 +88,9 @@ filename = "spatial/canonical.gpkg"
 *   `gbr_icc`: Downscales Initial Coral Cover from RME data using Julia.
 *   `spatial_data_formatter`: Copies the canonical geopackage to the domain.
 *   `move_file_formatter`: Moves/Copies specific files from a source to the domain.
+
+## DHW Output Structure and Model Mapping
+
+The generated DHW NetCDF files (`dhwRCPxx.nc`) contain a `model` dimension which corresponds to an ensemble of climate models.
+
+**Note:** The specific mapping from the 1-based index in the `model` dimension to the climate model names is automatically generated and appended to the `README.md` file within the created domain directory. This ensures the documentation matches the specific input data used.

@@ -54,6 +54,9 @@ class DomainBuilder:
         # This creates basic folders and empty datapackage.json/README.md
         generate_dpkg(self._final_output_dir) 
 
+        # Generate base README so formatters can append to it
+        self._generate_domain_readme()
+
         # Enforce spatial filename convention: spatial/<domain_dir_name>.gpkg
         domain_dir_name = os.path.basename(self._final_output_dir)
         for output in self.config.outputs.values():
@@ -89,7 +92,6 @@ class DomainBuilder:
             
         # After all outputs are processed, generate domain-level metadata (overwriting initial templates)
         self._generate_datapackage_json()
-        self._generate_domain_readme()
 
         print("Build complete.")
 

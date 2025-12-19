@@ -206,8 +206,6 @@ class RMEDHWFormatter(Formatter):
             
         gdf = gpd.read_file(canonical_gpkg_path)
         canonical_ids = gdf["UNIQUE_ID"].tolist()
-        # Ensure lat/lon are available. Assuming standard GBR geopackage structure.
-        # Often centroid is used if geometry is polygon
         lons = gdf.geometry.centroid.x.values
         lats = gdf.geometry.centroid.y.values
 
@@ -216,7 +214,6 @@ class RMEDHWFormatter(Formatter):
         dhw_csv_dir = pj(rme_root_path, "data_files", "dhw_csv")
         
         if not os.path.isdir(dhw_csv_dir):
-            # Fallback: check if source_path itself is the csv dir
             if basename(source_path) == "dhw_csv":
                 dhw_csv_dir = source_path
             else:
@@ -238,28 +235,27 @@ class RMEDHWFormatter(Formatter):
 
         os.makedirs(output_path, exist_ok=True)
         
+        # Keep track of files for one RCP to update README
+        example_rcp_files = None
+        
         for rcp in rcps_tuple:
             patterns = rcps_to_ssp_patterns.get(rcp, [])
-            csv_files = []
-            
-            # Find files matching any of the patterns for this RCP
-            # We look for files containing e.g. "126" or "SSP126" in the name
-            # Being careful not to double count if patterns overlap, but here they are distinct enough.
-            # Strategy: List all files, filter by pattern.
             all_csvs = glob(pj(dhw_csv_dir, "*.csv"))
             
-            # Filter for this RCP
             rcp_files = []
             for f in all_csvs:
                 fname = basename(f)
                 if any(pat in fname for pat in patterns):
                     rcp_files.append(f)
             
-            rcp_files = sorted(list(set(rcp_files))) # Unique and sorted
+            rcp_files = sorted(list(set(rcp_files)))
             
             if not rcp_files:
                 print(f"Warning: No CSV files found for RCP {rcp} in {dhw_csv_dir}")
                 continue
+            
+            if example_rcp_files is None:
+                example_rcp_files = rcp_files
                 
             out_fp = pj(output_path, f"dhwRCP{rcps_fn[rcp]}.nc")
             print(f"Formatting {len(rcp_files)} CSVs for RCP {rcp} to {out_fp}...")
@@ -272,6 +268,39 @@ class RMEDHWFormatter(Formatter):
                 lats, 
                 lons
             )
+
+        # Update README with model info
+        domain_dir = os.path.dirname(output_path)
+        readme_path = pj(domain_dir, "README.md")
+        if os.path.exists(readme_path) and example_rcp_files:
+            self._update_readme(readme_path, example_rcp_files)
+
+    def _update_readme(self, readme_path: str, files: list):
+        gcms_list = []
+        for fp in files:
+            filename = basename(fp)
+            # Regex to extract model name before the scenario part (e.g. SSP126, 126, 370)
+            # Matches anything up to the underscore before (SSP)?\d{3}
+            match = re.search(r"^(.*?)_(?:SSP)?\d{3}", filename)
+            if match:
+                gcms_list.append(match.group(1))
+            else:
+                gcms_list.append(filename) # Fallback
+
+        grouped_gcms = [(key, len(list(group))) for key, group in groupby(gcms_list)]
+
+        with open(readme_path, "a") as f:
+            f.write("\n\n## DHW Climate Models (RME Source)\n\n")
+            f.write("The `model` dimension in the DHW NetCDF files corresponds to the following climate models (indices are 1-based):\n\n")
+            
+            current_idx = 1
+            for gcm, count in grouped_gcms:
+                end_idx = current_idx + count - 1
+                if count > 1:
+                    f.write(f"*   {gcm} ({current_idx}:{end_idx})\n")
+                else:
+                    f.write(f"*   {gcm} ({current_idx})\n")
+                current_idx += count
 
 class GBRICCFormatter(Formatter):
     """
