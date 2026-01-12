@@ -1,21 +1,73 @@
 import os
-import shutil
-import tempfile
 import datetime
 import json
 try:
     import tomllib
 except ImportError:
     import tomli as tomllib
-from typing import Dict, Optional, Any
 
-from rrap_dg import DATAPACKAGE_VERSION, PKG_PATH # Import DATAPACKAGE_VERSION and PKG_PATH
+from rrap_dg import DATAPACKAGE_VERSION
 from rrap_dg.config import get_settings
-from rrap_dg.dpkg_template.dpkg_template import generate as generate_dpkg # Import dpkg_template generator
-from .config_model import DomainConfig
+from rrap_dg.dpkg_template.dpkg_template import generate as generate_dpkg
+
 from .source_manager import SourceManager
 from .formatters import FormatterRegistry
 from .exceptions import ConfigurationError
+from .models import DomainConfig, DataPackage, Source, Contributor, Resource, SimulationMetadata
+
+def _process_contributor_metadata(contact, title, contributors):
+    """Construct contributor models and check for multiple contributions."""
+    if not contact:
+        return
+
+    if contact not in contributors:
+        contributors[contact] = Contributor(
+            title=contact.split("@")[0],
+            email=contact,
+            role="author",
+            datasets=[]
+        )
+    contributors[contact].datasets.append(title)
+
+    return
+
+
+def _process_source_metadata(metadata_fn):
+    """Extract metadata from source metadata file."""
+    with open(metadata_fn, "r") as f:
+        meta = json.load(f)
+        dataset_info = meta.get("dataset_info", {})
+        associations = meta.get("associations", {})
+
+        title = dataset_info.get("name", metadata_fn)
+        desc = dataset_info.get("description", "")
+
+        contact = associations.get("point_of_contact")
+
+    return title, desc, contact
+
+def _process_resource_metadata(config_items, global_options):
+    """Construct the resource models from the configuration."""
+    resources = []
+    for output_name, output_config in config_items:
+        res_kwargs = {
+            "name": output_name,
+            "description": output_config.options.get("description", f"{output_name} data."),
+            "path": output_config.filename,
+            "format": output_config.options.get("format", "unknown")
+        }
+
+        if output_config.type == "spatial_data":
+            res_kwargs.update({
+                "location_id_col": global_options.get("location_id_col", "UNIQUE_ID"),
+                "cluster_id_col": global_options.get("cluster_id_col", "UNIQUE_ID"),
+                "k_col": global_options.get("k_col", "ReefMod_habitable_proportion"),
+                "area_col": global_options.get("area_col", "ReefMod_area_m2")
+            })
+
+        resources.append(Resource(**res_kwargs))
+
+    return resources
 
 class DomainBuilder:
     def __init__(self, config_path: str, output_parent_dir: str):
@@ -31,7 +83,7 @@ class DomainBuilder:
         date_str = datetime.date.today().strftime('%Y-%m-%d')
         version_str = DATAPACKAGE_VERSION.replace(".", "")
         self._final_output_dir = os.path.join(
-            output_parent_dir, # Use the argument here
+            output_parent_dir,
             f"{self.config.domain_name}_{date_str}_v{version_str}"
         )
 
@@ -88,117 +140,45 @@ class DomainBuilder:
         dpkg_path = os.path.join(self._final_output_dir, "datapackage.json")
         domain_name = self.config.domain_name
 
-        sources_list = []
-        contributors_map = {}
+        sources = []
+        contributors = {}
 
         for source_key, source_config in self.config.sources.items():
             handle = source_config.handle
             resolved_path = self.source_manager.resolved_paths.get(source_key)
             meta_path = self.source_manager.get_source_metadata_path(source_key)
 
-            if meta_path and os.path.exists(meta_path):
-                with open(meta_path, "r") as f:
-                    try:
-                        meta = json.load(f)
-                        dataset_info = meta.get("dataset_info", {})
-                        associations = meta.get("associations", {})
+            title = f"{source_key} Dataset"
+            desc = ""
 
-                        ds_title = dataset_info.get("name", f"{source_key} Dataset")
-                        sources_list.append({
-                            "title": ds_title,
-                            "description": dataset_info.get("description", ""),
-                            "path": resolved_path, # Or a relative path
-                            "handle": handle or ""
-                        })
+            title, desc, contact = _process_source_metadata(meta_path)
+            _process_contributor_metadata(contact, title, contributors)
 
-                        contact = associations.get("point_of_contact")
-                        if contact:
-                            if contact not in contributors_map:
-                                contributors_map[contact] = {
-                                    "title": contact.split("@")[0],
-                                    "email": contact,
-                                    "role": "author",
-                                    "datasets": []
-                                }
-                            contributors_map[contact]["datasets"].append(ds_title)
+            # Create Source object
+            sources.append(Source(
+                title=title,
+                description=desc,
+                path=resolved_path,
+                handle=handle or ""
+            ))
 
-                    except json.JSONDecodeError:
-                        print(f"Warning: Could not decode metadata file for source '{source_key}' at {meta_path}")
-            elif handle:
-                 # Even if no metadata.json, add basic info if it was a handle
-                 sources_list.append({
-                    "title": f"{source_key} Dataset (Handle: {handle})",
-                    "description": "",
-                    "path": resolved_path,
-                    "handle": handle
-                 })
-            elif resolved_path:
-                 # Local path, just record path
-                 sources_list.append({
-                    "title": f"{source_key} Dataset (Local)",
-                    "description": "",
-                    "path": resolved_path,
-                    "handle": ""
-                 })
-
-        contributors_list = []
-        for contact_email, info in contributors_map.items():
-            datasets_str = ", ".join(info["datasets"])
-            contributors_list.append({
-                "title": info["title"],
-                "email": info["email"],
-                "role": info["role"],
-                "description": f"Point of contact for: {datasets_str}"
-            })
-
-        num_locations_val = None # Initialize as None, will be replaced with int if found
-        spatial_output = next((out for out in self.config.outputs.values() if out.type == "spatial_data"), None)
-        if spatial_output:
-            gpkg_path = os.path.join(self._final_output_dir, spatial_output.filename)
-            if os.path.exists(gpkg_path):
-                try:
-                    import geopandas as gpd # Import geopandas here to avoid module-level issues
-                    gdf = gpd.read_file(gpkg_path)
-                    num_locations_val = len(gdf) # Store as int directly
-                except Exception as e:
-                    print(f"Warning: Could not read geopackage at {gpkg_path} to determine num_locations. Error: {e}")
-
-        # Extract global options for template substitution
         global_opts = self.config.global_options
+        resources = _process_resource_metadata(
+            self.config.outputs.items(), global_opts
+        )
 
-        # Populate resources based on actual outputs
-        resources_list = []
-        for output_name, output_config in self.config.outputs.items():
-            resource = {
-                "name": output_name,
-                "description": output_config.options.get("description", f"{output_name} data."),
-                "path": output_config.filename,
-                "format": output_config.options.get("format", "unknown"), # Allow format to be specified in output options
-            }
-            # Add specific columns for spatial data
-            if output_config.type == "spatial_data": # Check type here
-                resource["location_id_col"] = global_opts.get("location_id_col", "UNIQUE_ID")
-                resource["cluster_id_col"] = global_opts.get("cluster_id_col", "UNIQUE_ID")
-                resource["k_col"] = global_opts.get("k_col", "ReefMod_habitable_proportion")
-                resource["area_col"] = global_opts.get("area_col", "ReefMod_area_m2")
-
-            resources_list.append(resource)
-
-        # Construct the datapackage dictionary directly
-        datapackage_dict = {
-            "name": domain_name,
-            "title": f"{domain_name} Domain",
-            "description": "Generated ADRIA Domain",
-            "version": DATAPACKAGE_VERSION,
-            "sources": sources_list,
-            "simulation_metadata": {
-                "timeframe": list(map(int, global_opts.get("timeframe", "2025 2099").split(" "))),
-                "num_locations": num_locations_val
-            },
-            "contributors": contributors_list,
-            "resources": resources_list
-        }
+        pkg = DataPackage(
+            name=domain_name,
+            title=f"{domain_name} Domain",
+            version=DATAPACKAGE_VERSION,
+            sources=sources,
+            simulation_metadata=SimulationMetadata(
+                timeframe=list(map(int, global_opts.get("timeframe", "2025 2099").split(" "))),
+            ),
+            contributors=contributors.values(),
+            resources=resources
+        )
 
         with open(dpkg_path, "w") as f:
-            json.dump(datapackage_dict, f, indent=4)
+            f.write(pkg.model_dump_json(exclude_none=True, indent=4))
         print(f"Generated {dpkg_path}")

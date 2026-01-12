@@ -1,8 +1,8 @@
 import os
 from typing import Dict, Optional
-from glob import glob
 from rrap_dg.data_store.data_store import fetch_dataset
-from .config_model import SourceConfig
+
+from .models import SourceConfig
 from .exceptions import SourceError, ConfigurationError
 
 class SourceManager:

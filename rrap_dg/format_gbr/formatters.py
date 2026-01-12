@@ -1,17 +1,15 @@
-from abc import ABC, abstractmethod
-from typing import Dict, Any
 import os
 import shutil
-from glob import glob
-from os.path import join as pj, basename
 import pandas as pd
 import geopandas as gpd
-import re
-from itertools import groupby
+from abc import ABC, abstractmethod
+from typing import Dict, Any
+from glob import glob
+from os.path import join as pj, basename
 
 from .exceptions import ConfigurationError
 from .format_funcs import format_connectivity_file, reorder_location_perm, format_single_rcp_dhw, format_csv_dhw_model_group
-from .options_models import (
+from .models import (
     RMEConnectivityOptions,
     DHWOptions,
     RMEDHWOptions,
