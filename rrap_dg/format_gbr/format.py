@@ -19,15 +19,12 @@ def build_domain(
 ) -> None:
     """
     Builds an ADRIA Domain dataset based on the provided TOML configuration.
-    
+
     The configuration file defines:
     - Domain metadata
     - Data sources (handles or local paths)
     - Outputs to generate (connectivity, DHW, etc.) and the formatters to use.
     """
     builder = DomainBuilder(config_path, output_parent_dir)
-    try:
-        builder.build()
-        print(f"Domain '{builder.config.domain_name}' built successfully at {builder.output_dir}")
-    finally:
-        builder.cleanup()
+    builder.build()
+    print(f"Domain '{builder.config.domain_name}' built successfully at {builder.output_dir}")

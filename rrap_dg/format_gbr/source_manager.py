@@ -53,7 +53,7 @@ class SourceManager:
         """
         if source_name not in self.source_configs:
             raise ConfigurationError(f"Source key '{source_name}' not found in configuration sources.")
-        
+
         return self.resolve_source_path_from_config(source_name, self.source_configs[source_name])
 
     def get_source_metadata_path(self, source_name: str) -> Optional[str]:

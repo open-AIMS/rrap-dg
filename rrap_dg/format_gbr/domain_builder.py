@@ -22,15 +22,12 @@ class DomainBuilder:
         self.config_path = config_path
         self.config = self._load_config()
 
-        # Use persistent cache directory
         settings = get_settings()
         self._cache_dir = settings.data_store_cache_dir
         os.makedirs(self._cache_dir, exist_ok=True)
 
-        # Pass all source configurations directly to the SourceManager
         self.source_manager = SourceManager(self._cache_dir, self.config.sources)
 
-        # Construct the final output directory path based on naming convention
         date_str = datetime.date.today().strftime('%Y-%m-%d')
         version_str = DATAPACKAGE_VERSION.replace(".", "")
         self._final_output_dir = os.path.join(
@@ -49,12 +46,9 @@ class DomainBuilder:
 
     def build(self):
         print(f"Building domain: {self.config.domain_name}")
-        
-        # Create final output directory and initial structure using dpkg_template
-        # This creates basic folders and empty datapackage.json/README.md
-        generate_dpkg(self._final_output_dir) 
 
-        # Enforce spatial filename convention: spatial/<domain_dir_name>.gpkg
+        generate_dpkg(self._final_output_dir)
+
         domain_dir_name = os.path.basename(self._final_output_dir)
         for output in self.config.outputs.values():
             if output.type == "spatial_data":
@@ -62,32 +56,30 @@ class DomainBuilder:
                 print(f"Enforcing spatial filename: {new_filename}")
                 output.filename = new_filename
 
-        # Process each output
         for output_name, output in self.config.outputs.items():
             print(f"Processing output: {output_name} -> {output.filename} ({output.type})")
-            
-            # Resolve primary source using the updated SourceManager method
+
             source_path = self.source_manager.resolve_source_path(output.source)
-            
-            # Get formatter
+
             formatter = FormatterRegistry.get(output.formatter)
-            
-            # Construct output path using the final output directory
+
             output_path = os.path.join(self._final_output_dir, output.filename)
             output_parent = os.path.dirname(output_path)
             if output_parent:
-                os.makedirs(output_parent, exist_ok=True) # Ensure specific output sub-directories exist
-            
-            # Execute format
-            # Formatters can now call source_manager.resolve_source_path(key) for any auxiliary sources
-            formatter.format(
-                source_path=source_path,
-                output_path=output_path,
-                options=output.options,
-                source_manager=self.source_manager
-            )
-            
-        # After all outputs are processed, generate domain-level metadata (overwriting initial templates)
+                os.makedirs(output_parent, exist_ok=True)
+
+            try:
+                formatter.format(
+                    source_path=source_path,
+                    output_path=output_path,
+                    options=output.options,
+                    source_manager=self.source_manager
+                )
+            except Exception as e:
+                if "ValidationError" in str(type(e)):
+                    raise ConfigurationError(f"Invalid options for formatter '{output.formatter}' in output '{output_name}': {e}")
+                raise e
+
         self._generate_datapackage_json()
 
         print("Build complete.")
@@ -95,24 +87,22 @@ class DomainBuilder:
     def _generate_datapackage_json(self):
         dpkg_path = os.path.join(self._final_output_dir, "datapackage.json")
         domain_name = self.config.domain_name
-        
-        # Extract metadata from source handles and global options
+
         sources_list = []
-        # Dictionary to track contributors. Key: email, Value: {info..., "datasets": []}
         contributors_map = {}
 
         for source_key, source_config in self.config.sources.items():
             handle = source_config.handle
             resolved_path = self.source_manager.resolved_paths.get(source_key)
             meta_path = self.source_manager.get_source_metadata_path(source_key)
-            
+
             if meta_path and os.path.exists(meta_path):
                 with open(meta_path, "r") as f:
                     try:
                         meta = json.load(f)
                         dataset_info = meta.get("dataset_info", {})
                         associations = meta.get("associations", {})
-                        
+
                         ds_title = dataset_info.get("name", f"{source_key} Dataset")
                         sources_list.append({
                             "title": ds_title,
@@ -128,10 +118,10 @@ class DomainBuilder:
                                     "title": contact.split("@")[0],
                                     "email": contact,
                                     "role": "author",
-                                    "datasets": [] 
+                                    "datasets": []
                                 }
                             contributors_map[contact]["datasets"].append(ds_title)
-                            
+
                     except json.JSONDecodeError:
                         print(f"Warning: Could not decode metadata file for source '{source_key}' at {meta_path}")
             elif handle:
@@ -151,7 +141,6 @@ class DomainBuilder:
                     "handle": ""
                  })
 
-        # Format contributors list
         contributors_list = []
         for contact_email, info in contributors_map.items():
             datasets_str = ", ".join(info["datasets"])
@@ -162,7 +151,6 @@ class DomainBuilder:
                 "description": f"Point of contact for: {datasets_str}"
             })
 
-        # Dynamically determine num_locations if spatial geopackage is generated
         num_locations_val = None # Initialize as None, will be replaced with int if found
         spatial_output = next((out for out in self.config.outputs.values() if out.type == "spatial_data"), None)
         if spatial_output:
@@ -214,7 +202,3 @@ class DomainBuilder:
         with open(dpkg_path, "w") as f:
             json.dump(datapackage_dict, f, indent=4)
         print(f"Generated {dpkg_path}")
-
-    def cleanup(self):
-        # Cache is persistent, so we don't clean it up automatically.
-        pass
