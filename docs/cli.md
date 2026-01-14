@@ -62,6 +62,18 @@ Example:
 (rrap-dg) $ rrapdg domain cluster "C:/example/example.gpkg" "./test.gpkg"
 ```
 
+## Integrated GBR Domain Generation
+
+Generate a complete GBR-wide ADRIA Domain using a configuration file.
+
+**Usage:**
+
+```console
+(rrap-dg) $ rrapdg GBR build-domain [OUTPUT_PARENT_DIR] [CONFIG_FILE]
+```
+
+See [GBR Domain Generation](gbr_domain.md) for detailed configuration instructions.
+
 ## RRAP M&DS Data Store
 
 Download data from the M&DS datastore.

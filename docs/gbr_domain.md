@@ -41,7 +41,6 @@ source = "rme_data"
 filename = "connectivity" # Output directory for CSVs
 [outputs.connectivity.options]
     spatial_source = "spatial_base"
-    format = "csv"
 
 
 # Generate Degree Heating Weeks (DHWs)
@@ -53,7 +52,6 @@ filename = "DHWs" # Output directory for NetCDFs
 [outputs.dhw.options]
     rcps = "2.6 4.5 7.0 8.5"
     timeframe = "2025 2099"
-    format = "netcdf"
 
 
 # Generate Initial Coral Cover
@@ -65,7 +63,6 @@ source = "rme_data"
 filename = "spatial/coral_cover.nc"
 [outputs.coral_cover.options]
     canonical_source = "spatial_base"
-    format = "netcdf"
 
 
 [outputs.spatial_data]
@@ -76,7 +73,6 @@ source = "spatial_base"
 filename = "spatial/canonical.gpkg"
 [outputs.spatial_data.options]    
     filename_or_pattern = "rrap_canonical*.gpkg"
-    format = "geopackage"
 
 ```
 
@@ -86,11 +82,8 @@ filename = "spatial/canonical.gpkg"
 *   `standard_netcdf_dhw`: Formats standard DHW NetCDF files.
 *   `rme_dhw`: Formats DHW data provided as CSVs in RME datasets.
 *   `gbr_icc`: Downscales Initial Coral Cover from RME data using Julia.
-*   `spatial_data_formatter`: Copies the canonical geopackage to the domain.
 *   `move_file_formatter`: Moves/Copies specific files from a source to the domain.
 
 ## DHW Output Structure and Model Mapping
 
 The generated DHW NetCDF files (`dhwRCPxx.nc`) contain a `model` dimension which corresponds to an ensemble of climate models.
-
-**Note:** The specific mapping from the 1-based index in the `model` dimension to the climate model names is automatically generated and appended to the `README.md` file within the created domain directory. This ensures the documentation matches the specific input data used.
