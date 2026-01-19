@@ -32,11 +32,6 @@ Example:
 (rrap-dg) $ rrapdg coral-cover downscale-icc C:/example/rrapdg ./Moore.gpkg ./coral_cover.nc
 ```
 
-You can also use a TOML file to define bin edges:
-```console
-(rrap-dg) $ rrapdg coral-cover bin-edge-icc [rrap-dg datapackage path] [target geopackage] [output directory] [TOML file]
-```
-
 ## Cyclone Mortality
 
 Generate Cyclone Mortality projections.
@@ -80,6 +75,31 @@ Download data from the M&DS datastore.
 
 **Usage:**
 
+### Download to Directory
+
 ```console
 (rrap-dg) $ rrapdg data-store download [dataset id] [output directory]
+```
+
+### Download to Cache
+
+Download a dataset to the system cache (default: `~/.cache/rrap-dg`).
+
+```console
+(rrap-dg) $ rrapdg data-store download-w-cache [dataset id] [--force]
+```
+
+## Data Package Templates
+
+Create empty ADRIA Domain data package structures.
+
+**Usage:**
+
+```console
+(rrap-dg) $ rrapdg template generate [output directory]
+```
+
+Example:
+```console
+(rrap-dg) $ rrapdg template generate ./new_domain
 ```

@@ -8,7 +8,7 @@ Use these commands to fetch datasets.
 
 ### `download`
 
-Download a dataset by its handle ID.
+Download a dataset by its handle ID to a specified directory.
 
 ```bash
 rrapdg data-store download [HANDLE_ID] [OUTPUT_DIRECTORY]
@@ -16,6 +16,17 @@ rrapdg data-store download [HANDLE_ID] [OUTPUT_DIRECTORY]
 
 *   `HANDLE_ID`: The unique identifier for the dataset (e.g., `10378.1/123456`).
 *   `OUTPUT_DIRECTORY`: The local folder where files will be saved.
+
+### `download-w-cache`
+
+Download a dataset by its handle ID to the system cache (default `~/.cache/rrap-dg`). If the dataset is already cached, it will not be re-downloaded unless forced.
+
+```bash
+rrapdg data-store download-w-cache [HANDLE_ID] [--force]
+```
+
+*   `HANDLE_ID`: The unique identifier for the dataset.
+*   `--force`: (Optional) If set, clears the existing cache for this dataset and re-downloads it.
 
 ## rrap-dg Data Packages
 
