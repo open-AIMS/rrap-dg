@@ -1,6 +1,6 @@
 import os
 from typing import Dict, Optional
-from rrap_dg.data_store.data_store import fetch_dataset
+from rrap_dg.data_store.data_store import download_w_cache
 
 from .models import SourceConfig
 from .exceptions import SourceError, ConfigurationError
@@ -14,7 +14,7 @@ class SourceManager:
         self.cache_dir = cache_dir
         self.source_configs = source_configs
         self.resolved_paths: Dict[str, str] = {}
-        self.metadata_paths: Dict[str, Optional[str]] = {} # New: Stores path to metadata.json for handles
+        self.metadata_paths: Dict[str, Optional[str]] = {}
 
     def resolve_source_path_from_config(self, source_name: str, config: SourceConfig) -> str:
         """
@@ -32,12 +32,12 @@ class SourceManager:
             if not os.path.exists(config.path):
                 raise SourceError(f"Source '{source_name}' path does not exist: {config.path}")
             self.resolved_paths[source_name] = config.path
-            self.metadata_paths[source_name] = None # No metadata.json for local paths usually
+            self.metadata_paths[source_name] = None
             return config.path
 
         if config.handle:
             try:
-                download_dest = fetch_dataset(config.handle)
+                download_dest = download_w_cache(config.handle)
                 self.resolved_paths[source_name] = download_dest
                 meta_path = os.path.join(download_dest, "metadata.json")
                 self.metadata_paths[source_name] = meta_path if os.path.exists(meta_path) else None

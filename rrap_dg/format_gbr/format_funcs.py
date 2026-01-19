@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 def validate_location_agreement(dhw_nc_handles: list) -> None:
+    """Check that all netcdf files refer to the same locations."""
     unique_ids = dhw_nc_handles[0].variables['UNIQUE_ID'][:]
 
     for nc_handle in dhw_nc_handles[1:]:
@@ -15,6 +16,7 @@ def validate_location_agreement(dhw_nc_handles: list) -> None:
     return None
 
 def validate_lon_agreement(dhw_nc_handles: list) -> None:
+    """Check that all netcdf files refer to the same longitudes."""
     lons = dhw_nc_handles[0].variables['lon_reef'][:]
 
     for nc_handle in dhw_nc_handles[1:]:
@@ -27,6 +29,7 @@ def validate_lon_agreement(dhw_nc_handles: list) -> None:
     return None
 
 def validate_lat_agreement(dhw_nc_handles: list) -> None:
+    """Check that all netcdf files refer to the same latitudes."""
     lats = dhw_nc_handles[0].variables['lat_reef'][:]
 
     for nc_handle in dhw_nc_handles[1:]:
@@ -39,6 +42,7 @@ def validate_lat_agreement(dhw_nc_handles: list) -> None:
     return None
 
 def validate_time_agreement(dhw_nc_handles: list) -> None:
+    """Check that all netcdf files refer to the same timesteps."""
     years = dhw_nc_handles[0].variables['time'][:]
 
     for nc_handle in dhw_nc_handles[1:]:
@@ -86,7 +90,7 @@ def format_single_rcp_dhw(
 
     with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
         # Define Dimensions
-        nc_out.createDimension("model", n_sims)
+        nc_out.createDimension("scenarios", n_sims)
         nc_out.createDimension("locations", n_locs)
         nc_out.createDimension("timesteps", n_years)
 
@@ -97,7 +101,7 @@ def format_single_rcp_dhw(
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         location_ID = nc_out.createVariable("locations", str, ("locations",))
         dhw_ID = nc_out.createVariable(
-            "dhw", "f8", ("model", "locations", "timesteps")
+            "dhw", "f8", ("scenarios", "locations", "timesteps")
         )
 
         lon_ID.coordinates = "locations"
@@ -148,23 +152,19 @@ def format_single_rcp_dhw(
 
     return None
 
-"""Return a permutation that reorders the first list to match the second."""
 def reorder_location_perm(rme_order: list[str], canonical_order: list[str]) -> list[int]:
+    """Return a permutation that reorders the first list to match the second."""
     rme_id_to_index = {id_val: i for i, id_val in enumerate(rme_order)}
     new_order_indices = [rme_id_to_index[id_val] for id_val in canonical_order]
 
     return new_order_indices
 
-"""
-    format_connectivity_file(filepath: str, reorder: list[int], unique_ids : list[str]) -> pd.Dataframe:
-
-Add unique ids to columns and rows.
-"""
 def format_connectivity_file(
     filepath: str,
     reorder: list[int],
     unique_ids : list[str]
 ) -> pd.DataFrame:
+    """Add unique ids to columns and rows."""
     connectivity = pd.read_csv(filepath, header=None, comment='#')
     connectivity = connectivity.iloc[reorder, reorder]
     connectivity.index = unique_ids
@@ -223,7 +223,7 @@ def format_csv_dhw_model_group(
         dhw_data[i, :, :] = subset
 
     with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
-        nc_out.createDimension("model", n_sims)
+        nc_out.createDimension("scenarios", n_sims)
         nc_out.createDimension("locations", n_locs)
         nc_out.createDimension("timesteps", n_years)
 
@@ -231,7 +231,7 @@ def format_csv_dhw_model_group(
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
 
         dhw_ID = nc_out.createVariable(
-            "dhw", "f8", ("model", "locations", "timesteps")
+            "dhw", "f8", ("scenarios", "locations", "timesteps")
         )
 
         time_ID.units = "year"

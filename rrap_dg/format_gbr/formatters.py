@@ -87,7 +87,6 @@ class RMEConnectivityFormatter(Formatter):
         if not connectivity_files:
              raise RuntimeError(f"No connectivity CSVs found matching '{opts.connectivity_pattern}' in {source_path}")
 
-        # Find ID list using recursive glob pattern
         rme_id_files = glob(pj(source_path, opts.id_list_pattern), recursive=True)
         if not rme_id_files:
             raise RuntimeError(f"No ID list found matching '{opts.id_list_pattern}' in {source_path}")
@@ -95,7 +94,6 @@ class RMEConnectivityFormatter(Formatter):
         rme_ids = pd.read_csv(rme_id_files[0], comment="#", header=None)
         canonical = gpd.read_file(canonical_gpkg_path)
 
-        # Calculate permutation
         reorder_perm = reorder_location_perm(rme_ids[0], canonical.RME_GBRMPA_ID)
 
         if not os.path.splitext(output_path)[1]:
