@@ -1,0 +1,56 @@
+domain_name = "GBR"
+
+[sources]
+    [sources.spatial_base]
+    handle = "102.100.100/711118"
+
+    [sources.dhw_data]
+    handle = "102.100.100/705397"
+
+    [sources.rme_data]
+    handle = "102.100.100/705924"
+
+[outputs]
+[outputs.connectivity]
+type = "connectivity"
+format = "csv"
+formatter = "rme_connectivity"
+source = "rme_data"
+filename = "connectivity"
+
+[outputs.connectivity.options]
+    spatial_source = "spatial_base"
+    format = "csv"
+
+
+    [outputs.dhw]
+    type = "dhw"
+    formatter = "standard_netcdf_dhw"
+    source = "dhw_data"
+    filename = "DHWs"
+    [outputs.dhw.options]
+        rcps = "2.6 4.5 7.0 8.5"
+        timeframe = "2025 2099"
+        format = "netcdf"
+
+
+    [outputs.coral_cover]
+    type = "initial_coral_cover"
+    format = "netcdf"
+    formatter = "gbr_icc"
+    source = "rme_data"
+    filename = "spatial/coral_cover.nc"
+    [outputs.coral_cover.options]
+        canonical_source = "spatial_base"
+        format = "netcdf"
+
+
+    [outputs.spatial_data]
+    type = "spatial_data"
+    format = "geopackage"
+    formatter = "move_file_formatter"
+    source = "spatial_base"
+    filename = "spatial/canonical.gpkg"
+    [outputs.spatial_data.options]    
+        filename_or_pattern = "rrap_canonical*.gpkg"
+        format = "geopackage"
