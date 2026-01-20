@@ -50,9 +50,9 @@ def generate(
     cluster_name : str, name of geopackage file to use (typically same as reef cluster name)
     input_loc : str, location of dataset
     output_loc : str, output location of generated netCDFs
-    n_sims : int, number of members to generate
-    RCPs : str, of RCP scenarios to generate members for
-    gen_year : str, the time frame member projections should be
+    n_sims : int, number of scenarios to generate
+    RCPs : str, of RCP scenarios to generate scenarios for
+    gen_year : str, the time frame scenarios projections should be
         generated for (end exclusive). Defaults to (2025, 2100).
 
     Notes
@@ -141,7 +141,7 @@ def generate(
         )
     )
 
-    for rcp_i in track(range(len(RCPs)), description="Generating members..."):
+    for rcp_i in track(range(len(RCPs)), description="Generating scenarios..."):
         RCP = RCPs[rcp_i]
         RCP_name = rcp_match[RCP]
 
@@ -299,7 +299,7 @@ def generate(
         output_file = pj(output_loc, f"dhwRCP{RCP_name}.nc")
         with netCDF4.Dataset(output_file, "w", format="NETCDF4") as nc_out:
             # Define dimensions
-            nc_out.createDimension("member", n_sims)
+            nc_out.createDimension("scenarios", n_sims)
             nc_out.createDimension("locations", n_sites)
             nc_out.createDimension("timesteps", n_years)
 
@@ -309,41 +309,31 @@ def generate(
             reef_ID = nc_out.createVariable("reef_siteid", str, ("locations",))
             unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
             dhw_ID = nc_out.createVariable(
-                "dhw", "f8", ("member", "locations", "timesteps")
+                "dhw", "f8", ("scenarios", "locations", "timesteps"), fill_value=1.0e35
             )  # variable order flipped for consistency with MATLAB
 
             # Put attributes
             # latitude
-            lon_ID.coordinates = "locations"
             lat_ID.units = "degrees_north"
             lat_ID.long_name = "latitude"
-            lat_ID.standard_name = "latitude"
             lat_ID.projection = crs_code
 
             # longitude
-            lon_ID.coordinates = "locations"
             lon_ID.units = "degrees_east"
             lon_ID.long_name = "longitude"
-            lon_ID.standard_name = "longitude"
             lon_ID.projection = crs_code
 
             # reef_siteid
-            reef_ID.coordinates = "locations"
             reef_ID.units = ""
             reef_ID.long_name = "reef site id"
-            reef_ID.standard_name = "reef_site_id"
 
             # unique_id
-            unique_ID.coordinates = "locations"
             unique_ID.units = ""
             unique_ID.long_name = "unique id"
-            unique_ID.standard_name = "unique_id"
 
             # DHW data
-            dhw_ID.coordinates = "timesteps locations members"
             dhw_ID.units = "DegC-week"
             dhw_ID.long_name = "degree heating week"
-            dhw_ID.standard_name = "DHW"
             dhw_ID.missing_value = 1.0e35
 
             # Put the variables' values

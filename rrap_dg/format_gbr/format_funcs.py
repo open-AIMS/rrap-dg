@@ -101,44 +101,32 @@ def format_single_rcp_dhw(
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         location_ID = nc_out.createVariable("locations", str, ("locations",))
         dhw_ID = nc_out.createVariable(
-            "dhw", "f8", ("scenarios", "locations", "timesteps")
-        )
+            "dhw", "f8", ("scenarios", "locations", "timesteps"), fill_value=1.0e35
+        ) # Dimension order flipped to consistency with MATLAB/Julia
 
-        lon_ID.coordinates = "locations"
         lat_ID.units = "degrees_north"
         lat_ID.long_name = "latitude"
         lat_ID.standard_name = "latitude"
 
-        lon_ID.coordinates = "locations"
         lon_ID.units = "degrees_east"
         lon_ID.long_name = "longitude"
         lon_ID.standard_name = "longitude"
 
-        time_ID.coordinates = "timesteps"
         time_ID.units = "year"
         time_ID.long_name = "timesteps"
         time_ID.standard_name = "timesteps"
 
-        GBRMPA_ID.coordinates = "locations"
         GBRMPA_ID.units = ""
         GBRMPA_ID.long_name = "gbrmpa id"
-        GBRMPA_ID.standard_name = "gbrmpa_id"
 
-        unique_ID.coordinates = "locations"
         unique_ID.units = ""
         unique_ID.long_name = "unique id"
-        unique_ID.standard_name = "unique_id"
 
-        location_ID.coordinates = "locations"
         location_ID.units = ""
         location_ID.long_name = "unique id"
-        location_ID.standard_name = "unique_id"
 
-        dhw_ID.coordinates = "timesteps locations members"
         dhw_ID.units = "DegC-week"
         dhw_ID.long_name = "degree heating week"
-        dhw_ID.standard_name = "DHW"
-        dhw_ID.missing_value = 1.0e35
 
         lon_ID[:] = nc_handles[0].variables['lon_reef'][:]
         lat_ID[:] = nc_handles[0].variables['lat_reef'][:]
