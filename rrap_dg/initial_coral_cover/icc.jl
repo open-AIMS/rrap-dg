@@ -349,7 +349,10 @@ function downscale_icc(
     icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
 
     try
-        savecube(icc, output_path, driver=:netcdf)
+        arrs = Dict(:icc => icc)
+        properties = Dict()
+        ds = Dataset(; properties, arrs...)
+        savedataset(ds; path=output_path, driver=:netcdf)
     catch err
         if err isa ArgumentError
             @info "File appears to already exist or cannot be written to."
@@ -417,7 +420,11 @@ function format_rme_icc(rme_path::String, canonical_path::String, output_path::S
         Dim{:locations}(canonical_gpkg.UNIQUE_ID)
     )
 
-    savecube(YAXArray(dims, init_cover'), output_path, driver=:netcdf)
+    properties = Dict()
+    arrs= Dict(:coral_cover => YAXArray(dims, init_cover'))
+    ds = Dataset(; properties, arrs...)
+
+    savedataset(ds; path=output_path, driver=:netcdf)
 
     return nothing
 end
