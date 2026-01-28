@@ -5,7 +5,7 @@ Provides a single command-line interface to generate data sets for use with [ADR
 [![PyPI - Version](https://img.shields.io/pypi/v/rrap-dg.svg)](https://pypi.org/project/rrap-dg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rrap-dg.svg)](https://pypi.org/project/rrap-dg)
 
-# Warning: requires Python >= 3.11 
+# Warning: requires Python 3.11 
 
 ---
 
@@ -48,40 +48,36 @@ Clone the repository, and navigate to the project folder.
 
 ```bash
 git clone https://github.com/open-AIMS/rrap-dg
-cd rrap_dg
+cd rrap-dg
 ```
 
 It is recommended that any development work be done in a separate environment.
-
-Here, [`mamba`](https://mamba.readthedocs.io/en/latest/) is used to create a local `conda` environment.
+This project uses [`uv`](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
-# Create a new environment called rrap-dg
-$ mamba create -n rrap-dg python=3.11
+# Install dependencies and create a virtual environment
+$ uv sync
 
-# Don't forget to activate the environment
-$ mamba activate rrap-dg
-
-# Install local development copy of rrap-dg
-(rrap-dg) $ pip install -e .
+# Run the help command to trigger the setup
+$ uv run rrapdg --help
 ```
 
-Note: The first time `rrapdg` is run, it will go through an initial set up process.
+### Activating the environment
 
-Run the help command to trigger the setup.
+If you prefer to run commands without the `uv run` prefix, you can activate the virtual environment:
+
+```bash
+# On Linux/macOS
+$ source .venv/bin/activate
+
+# On Windows
+$ .venv\Scripts\activate
+```
+
+Once activated, you can run `rrapdg` directly:
 
 ```bash
 (rrap-dg) $ rrapdg --help
-```
-
-## Python venv setup
-
-Alternatively, you can use a traditional python venv. For example
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
 ```
 
 ## Overriding Default Settings
