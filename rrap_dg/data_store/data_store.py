@@ -8,7 +8,7 @@ app = typer.Typer()
 
 
 @app.command(help="Download data from RRAP M&DS Data Store by handle id and save to cache.")
-def fetch_dataset(handle_id: str, force: bool = False) -> str:
+def download_w_cache(handle_id: str, force: bool = False) -> str:
     """
     Retrieves a dataset, using the system cache if available.
     Returns the path to the dataset directory.
@@ -39,15 +39,14 @@ def fetch_dataset(handle_id: str, force: bool = False) -> str:
     )
     return target_dir
 
-
 @app.command(help="Download data from RRAP M&DS Data Store by handle id.")
 def download(handle_id: str, dest: str) -> None:
-    """Download data from the RRAP M&DS data store using a handle id.
+    """
+    Download data from the RRAP M&DS data store using a handle id.
 
-    Parameters
-    ----------
-    dest: str, output location of downloaded connectivity matrices
-    handle_id: str, dataset id of the connectivity matrices
+    Args:
+        dest: str, output location of downloaded connectivity matrices
+        handle_id: str, dataset id of the connectivity matrices
     """
     provena = get_provena_client()
     run(

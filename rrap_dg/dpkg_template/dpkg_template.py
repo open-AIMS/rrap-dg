@@ -5,28 +5,6 @@ from datetime import datetime
 import typer
 
 
-README_BASE = """
-# ADRIA data package
-
-Created: {created}
-
-
-## Connectivity
-
-
-## Cyclones
-
-
-## DHWs
-
-
-## Spatial
-
-
-## Waves
-"""
-
-
 app = typer.Typer()
 
 @app.command(help="Create empty ADRIA Domain data package")
@@ -37,9 +15,7 @@ def generate(template_path: str):
     os.makedirs(pj(template_path, "spatial"))
     os.makedirs(pj(template_path, "waves"))
     open(pj(template_path, "datapackage.json"), "a").close()
-
-    with open(pj(template_path, "README.md"), "a") as fp:
-        fp.write(README_BASE.format(created=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    open(pj(template_path, "README.md"), "a").close()
 
 @app.command(help="Create ADRIA Domain data package pre-filling with data from data store")
 def package(template_path: str, spec: str):

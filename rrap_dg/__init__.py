@@ -6,3 +6,5 @@ import os
 import pathlib
 
 PKG_PATH = pathlib.Path(os.path.dirname(__file__)).as_posix()
+
+DATAPACKAGE_VERSION = "0.8.0"
