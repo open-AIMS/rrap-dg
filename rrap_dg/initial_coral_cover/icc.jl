@@ -113,12 +113,33 @@ function _get_icc_dir(dpkg_path::String)::String
         return joinpath(dpkg_path, "coral_cover")
     end
 
+    if isdir(joinpath(dpkg_path, "data_files", "initial_csv"))
+
+        return joinpath(dpkg_path, "data_files", "initial_csv")
+    end
+
     if isdir(joinpath(dpkg_path, "data_files"))
         # ReefMod or RME dataset
         return joinpath(dpkg_path, "data_files", "initial")
     end
 
     error("Unknown directory structure.")
+end
+
+"""
+    _get_icc_cover_files(icc_dir::String)::Vector{String}
+
+Find all the initial coral cover files and return them as full paths.
+"""
+function _get_icc_cover_files(icc_dir::String)::Vector{String}
+    cover_pattern = r"coral_sp[1-6]_\d{4}\.csv"
+    files = filter(f -> occursin(cover_pattern, f), readdir(icc_dir))
+    if length(files) == 0
+        error("Unable to find initial cover files. Unkown directory structure.")
+    end
+    files = joinpath.(Ref(icc_dir), files)
+
+    return files
 end
 
 
@@ -135,8 +156,14 @@ Load GBR geopackage associated with RME (v1.0.x) with precomputed/packaged area 
 YAXArray[locs, species]
 """
 function load_gbr_gpkg(rrapdg_dpkg_path::String)::DataFrame
+    id_dir = _get_id_dir(rrapdg_dpkg_path)
+    id_list_file = filter(f -> occursin(r"id_list_.*\.csv", f), readdir(id_dir))
+    if isempty(id_list_file)
+        error("Unable to find id_list CSV in: $(id_dir)")
+    end
+
     id_list = CSV.read(
-        joinpath(_get_id_dir(rrapdg_dpkg_path), "id_list_2023_03_30.csv"),
+        joinpath(id_dir, first(id_list_file)),
         DataFrame;
         header=false,
         comment="#",
@@ -269,13 +296,13 @@ function downscale_icc(
         zeros(n_species, n_locs)
     )
 
-    # Conver small ds k areas from percentage to fraction
+    # Convert small ds k areas from percentage to fraction
     small_rel_k_areas = (small_ds.k ./ 100)
 
-    # Conver small ds k areas from relative (to total area) to absolute
+    # Convert small ds k areas from relative (to total area) to absolute
     small_abs_k_area = (small_rel_k_areas .* small_ds.area)'
 
-    has_capacity = vec(small_abs_k_area .> 0.0)
+    has_capacity = vec(coalesce.(small_abs_k_area .> 0.0, false))
 
     # Large ds clusters labels
     reef_labels_large = large_ds[match_ids, :LABEL_ID]
@@ -291,16 +318,18 @@ function downscale_icc(
         reef_rel_cover = dropdims(sum(init_cc[locs=At(label)], dims=2), dims=2)
 
         # Match up locations based on order indicated by geospatial dataset
-        is_cluster = ((small_ds.Reef .|> lowercase) .== reef_name_small)
+        is_cluster = coalesce.((small_ds.Reef .|> lowercase) .== reef_name_small, false)
         relevant_locs = is_cluster .& has_capacity
         n_locs = sum(relevant_locs)
 
-        # Get cover relative to cluster's absolute k area
-        target_locs_init_cover[:, relevant_locs] .= repeat(reef_rel_cover.data, 1, n_locs)
+        if n_locs > 0
+            # Get cover relative to cluster's absolute k area
+            target_locs_init_cover[:, relevant_locs] .= repeat(reef_rel_cover.data, 1, n_locs)
+        end
     end
 
     # Sum of species/size class cover should be <= maximum carrying capacity
-    @assert all(sum(target_locs_init_cover, dims=1) .<= small_abs_k_area)
+    @assert all(coalesce.(sum(target_locs_init_cover, dims=1) .<= small_abs_k_area, true))
 
     return target_locs_init_cover
 end
@@ -328,12 +357,82 @@ function downscale_icc(
     icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
 
     try
-        savecube(icc, output_path, driver=:netcdf)
+        arrs = Dict(:icc => icc)
+        properties = Dict()
+        ds = Dataset(; properties, arrs...)
+        savedataset(ds; path=output_path, driver=:netcdf)
     catch err
         if err isa ArgumentError
             @info "File appears to already exist or cannot be written to."
         end
     end
+
+    return nothing
+end
+
+"""
+    _sort_icc_files(filenames::Vector{String})
+
+Sort the initial coral cover files to give ["coral_sp1_2023.csv", "coral_sp2_2023.csv", ...]
+"""
+function _sort_icc_files(filenames::Vector{String})
+    # Guarantee that the order of files is ["sp1", "sp2", "sp3", ...]
+    sorted_filenames = sort(
+        filenames, by = x -> parse(Int, match(r"sp(\d+)", x).captures[1])
+    )
+    @assert occursin("sp1", sorted_filenames[1]) &&
+            occursin("sp2", sorted_filenames[2]) &&
+            occursin("sp3", sorted_filenames[3]) &&
+            occursin("sp4", sorted_filenames[4]) &&
+            occursin("sp5", sorted_filenames[5]) &&
+            occursin("sp6", sorted_filenames[6])
+
+    return sorted_filenames
+end
+
+function format_rme_icc(rme_path::String, canonical_path::String, output_path::String)::Nothing
+    # Read initial coral cover csvs
+    icc_dir::String = _get_icc_dir(rme_path)
+    icc_files::Vector{String} = _get_icc_cover_files(icc_dir)
+    icc_files = _sort_icc_files(icc_files)
+    icc_csvs = [
+        CSV.read(icc_fn, DataFrame; comment="#", header=false)
+        for icc_fn in icc_files
+    ]
+
+    canonical_gpkg = GDF.read(canonical_path)
+
+    # Initial coral cover of shape [locations ⋅ repeats ⋅ functional group]
+    init_cover::Array{Float64} = zeros(
+        Float64, size(icc_csvs[1], 1), size(icc_csvs[1], 2) - 1, length(icc_csvs)
+    )
+
+    ordering_dict = Dict(id=>i for (i, id) in enumerate(canonical_gpkg.RME_GBRMPA_ID))
+    for (sp_idx, icc_csv) in enumerate(icc_csvs)
+        order_perm = [ordering_dict[id] for id in icc_csv[:, 1]]
+        init_cover[:, :, sp_idx] .= icc_csv[order_perm, 2:end]
+    end
+
+    init_cover = dropdims(mean(init_cover, dims=2), dims=2) ./ 100
+    species_names = [
+        "arborescent Acropora",
+        "tabular Acropora",
+        "corymbose Acropora",
+        "corymbose non-Acropora",
+        "Small massives",
+        "Large massives"
+    ]
+
+    dims = (
+        Dim{:species}(species_names),
+        Dim{:locations}(canonical_gpkg.UNIQUE_ID)
+    )
+
+    properties = Dict()
+    arrs= Dict(:coral_cover => YAXArray(dims, init_cover'))
+    ds = Dataset(; properties, arrs...)
+
+    savedataset(ds; path=output_path, driver=:netcdf)
 
     return nothing
 end

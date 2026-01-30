@@ -36,7 +36,7 @@ dependencies = [
     "datapackage",
     "provenaclient",
     "pydantic>=2.0",
-    "pydantic-settings"
+    "pydantic-settings",
 ]
 dynamic = ["version"]
 

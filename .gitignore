@@ -128,3 +128,5 @@ dmypy.json
 .tokens.json
 
 sandbox
+output/
+scripts/

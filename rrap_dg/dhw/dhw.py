@@ -39,6 +39,8 @@ def generate(
     n_sims: int = 50,
     RCPs: str = typer.Option("2.6 4.5 6.0 8.5"),
     gen_year: str = typer.Option("2025 2100"),
+    gpkg_path: str = typer.Option(None, help="Direct path to the cluster geopackage file."),
+    recom_dir: str = typer.Option(None, help="Direct path to the directory containing RECOM files."),
 ) -> None:
     """Produce Degree Heating Week projections for a given cluster.
 
@@ -54,6 +56,8 @@ def generate(
     RCPs : str, of RCP scenarios to generate members for
     gen_year : str, the time frame member projections should be
         generated for (end exclusive). Defaults to (2025, 2100).
+    gpkg_path : str, direct path to the cluster geopackage file.
+    recom_dir : str, direct path to the directory containing RECOM files.
 
     Notes
     -----
@@ -75,9 +79,8 @@ def generate(
     hist_dhw_data = hist_dhw_data.rio.write_crs(crs_code)
 
     # Read spatial data and ensure CRS matches
-    cluster_poly = gpd.read_file(pj(input_loc, "spatial", f"{cluster_name}.gpkg")).to_crs(
-        crs_code
-    )
+    _gpkg_path = gpkg_path if gpkg_path else pj(input_loc, "spatial", f"{cluster_name}.gpkg")
+    cluster_poly = gpd.read_file(_gpkg_path).to_crs(crs_code)
 
     # Clunky way of getting the scale factor
     # There's probably a better way
@@ -118,7 +121,8 @@ def generate(
     # gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
 
     # Load yearly DHW data for cluster
-    recom_files = glob(pj(input_loc, "RECOM", f"*{cluster_name}*_*_dhw*.nc"))
+    _recom_dir = recom_dir if recom_dir else pj(input_loc, "RECOM")
+    recom_files = glob(pj(_recom_dir, f"*{cluster_name}*_*_dhw*.nc"))
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
 
@@ -349,7 +353,11 @@ def generate(
             # Put the variables' values
             lon_ID[:] = c_lon
             lat_ID[:] = c_lat
-            reef_ID[:] = cluster_poly.loc[:, "site_id"].to_numpy()
+
+            # Use 'site_id' if available, otherwise fallback to 'reef_siteid'
+            site_id_col = "site_id" if "site_id" in cluster_poly.columns else "reef_siteid"
+            reef_ID[:] = cluster_poly.loc[:, site_id_col].to_numpy()
+
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
 
