@@ -185,7 +185,7 @@ def rme_dhw(
     
     return "dhw", "Grouped DHW CSVs by RCP and converted to NetCDF, aligned with canonical IDs.", "netcdf"
 
-def gbr_icc(
+def rme_icc(
     input_path: str,
     output_path: str,
     canonical_path: str

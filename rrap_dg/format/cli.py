@@ -4,7 +4,7 @@ from rrap_dg.format.formatters import (
     rme_connectivity,
     standard_netcdf_dhw,
     rme_dhw,
-    gbr_icc
+    rme_icc
 )
 from rrap_dg.format.packaging import finalize_dataset
 from rrap_dg.utils import validate_metadata_presence
@@ -116,14 +116,14 @@ def rme_dhw_cmd(
         resource_format=res_fmt
     )
 
-@app.command(name="gbr-icc")
-def gbr_icc_cmd(
+@app.command(name="rme-icc")
+def rme_icc_cmd(
     input_path: str = typer.Option(..., help="Path to input RME ICC data."),
     output_path: str = typer.Option(..., help="Output directory."),
     canonical_path: str = typer.Option(..., help="Path to canonical spatial geopackage.")
 ):
     """
-    Format Initial Coral Cover (ICC) using Julia.
+    Format RME Initial Coral Cover (ICC) using Julia.
     """
     print("Checking for Input metadata.json file.")
     found = validate_metadata_presence(Path(input_path))
@@ -132,8 +132,8 @@ def gbr_icc_cmd(
     found = validate_metadata_presence(Path(canonical_path))
     if found: print("    Found metadata.json.") 
     
-    print("Running gbr-icc formatting...")
-    res_name, res_desc, res_fmt = gbr_icc(
+    print("Running rme-icc formatting...")
+    res_name, res_desc, res_fmt = rme_icc(
         input_path=input_path,
         output_path=output_path,
         canonical_path=canonical_path
@@ -141,7 +141,7 @@ def gbr_icc_cmd(
     finalize_dataset(
         output_path, 
         {"input": input_path, "canonical_spatial": canonical_path}, 
-        formatter_name="GBR ICC",
+        formatter_name="RME ICC",
         resource_name=res_name,
         resource_description=res_desc,
         resource_format=res_fmt
