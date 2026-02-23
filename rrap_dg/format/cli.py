@@ -2,7 +2,7 @@ import typer
 from pathlib import Path
 from rrap_dg.format.formatters import (
     rme_connectivity,
-    standard_netcdf_dhw,
+    cmip6_downscaled_dhw,
     rme_dhw,
     rme_icc
 )
@@ -24,11 +24,11 @@ def rme_connectivity_cmd(
     """
     print("Checking for Input metadata.json file.")
     found = validate_metadata_presence(Path(input_path))
-    if found: print("  Found metadata.json.") 
+    if found: print("  Found metadata.json.")
     print("Checking for Canonical metadata.json file.")
     found = validate_metadata_presence(Path(canonical_path))
-    if found: print("  Found metadata.json.") 
-    
+    if found: print("  Found metadata.json.")
+
     print("Running rme-connectivity formatting...")
     res_name, res_desc, res_fmt = rme_connectivity(
         input_path=input_path,
@@ -37,18 +37,18 @@ def rme_connectivity_cmd(
         connectivity_pattern=connectivity_pattern,
         id_list_pattern=id_list_pattern
     )
-    
+
     finalize_dataset(
-        output_path, 
-        {"input": input_path, "canonical_spatial": canonical_path}, 
+        output_path,
+        {"input": input_path, "canonical_spatial": canonical_path},
         formatter_name="RME Connectivity",
         resource_name=res_name,
         resource_description=res_desc,
         resource_format=res_fmt
     )
 
-@app.command(name="standard-dhw")
-def standard_dhw_cmd(
+@app.command(name="cmip6-downscaled-dhw")
+def cmip6_downscaled_dhw_cmd(
     input_path: str = typer.Option(..., help="Path to input NetCDF DHW files."),
     output_path: str = typer.Option(..., help="Output directory."),
     rcps: str = typer.Option("2.6 4.5 7.0 8.5", help="Space-separated list of RCPs."),
@@ -56,14 +56,14 @@ def standard_dhw_cmd(
     filename_template: str = typer.Option("*{ssp}*", help="Glob template for finding files.")
 ):
     """
-    Format standard NetCDF DHW files.
+    Format CMIP6 Statistically Downscaled NetCDF DHW files.
     """
     print("Checking for Input metadata.json file.")
     found = validate_metadata_presence(Path(input_path))
     if found: print("  Found metadata.json.") 
     
-    print("Running standard-dhw formatting...")
-    res_name, res_desc, res_fmt = standard_netcdf_dhw(
+    print("Running cmip6-downscaled-dhw formatting...")
+    res_name, res_desc, res_fmt = cmip6_downscaled_dhw(
         input_path=input_path,
         output_path=output_path,
         rcps=rcps,
@@ -73,7 +73,7 @@ def standard_dhw_cmd(
     finalize_dataset(
         output_path, 
         {"input": input_path}, 
-        formatter_name="Standard NetCDF DHW",
+        formatter_name="CMIP6 Statistically Downscaled DHW",
         resource_name=res_name,
         resource_description=res_desc,
         resource_format=res_fmt
@@ -93,11 +93,11 @@ def rme_dhw_cmd(
     """
     print("Checking for Input metadata.json file.")
     found = validate_metadata_presence(Path(input_path))
-    if found: print("  Found metadata.json.") 
+    if found: print("  Found metadata.json.")
     print("Checking for Canonical metadata.json file.")
     found = validate_metadata_presence(Path(canonical_path))
-    if found: print("  Found metadata.json.") 
-    
+    if found: print("  Found metadata.json.")
+
     print("Running rme-dhw formatting...")
     res_name, res_desc, res_fmt = rme_dhw(
         input_path=input_path,
@@ -108,8 +108,8 @@ def rme_dhw_cmd(
         dhw_csv_pattern=dhw_csv_pattern
     )
     finalize_dataset(
-        output_path, 
-        {"input": input_path, "canonical_spatial": canonical_path}, 
+        output_path,
+        {"input": input_path, "canonical_spatial": canonical_path},
         formatter_name="RME DHW",
         resource_name=res_name,
         resource_description=res_desc,
@@ -127,11 +127,11 @@ def rme_icc_cmd(
     """
     print("Checking for Input metadata.json file.")
     found = validate_metadata_presence(Path(input_path))
-    if found: print("  Found metadata.json.") 
+    if found: print("  Found metadata.json.")
     print("Checking for Canonical metadata.json file.")
     found = validate_metadata_presence(Path(canonical_path))
-    if found: print("    Found metadata.json.") 
-    
+    if found: print("    Found metadata.json.")
+
     print("Running rme-icc formatting...")
     res_name, res_desc, res_fmt = rme_icc(
         input_path=input_path,
@@ -139,8 +139,8 @@ def rme_icc_cmd(
         canonical_path=canonical_path
     )
     finalize_dataset(
-        output_path, 
-        {"input": input_path, "canonical_spatial": canonical_path}, 
+        output_path,
+        {"input": input_path, "canonical_spatial": canonical_path},
         formatter_name="RME ICC",
         resource_name=res_name,
         resource_description=res_desc,
