@@ -402,15 +402,13 @@ function format_rme_icc(rme_path::String, canonical_path::String, output_path::S
 
     canonical_gpkg = GDF.read(canonical_path)
 
-    # Initial coral cover of shape [locations ⋅ repeats ⋅ functional group]
-    init_cover::Array{Float64} = zeros(
-        Float64, size(icc_csvs[1], 1), size(icc_csvs[1], 2) - 1, length(icc_csvs)
-    )
+    n_locs = length(canonical_gpkg.RME_GBRMPA_ID)
+    init_cover = zeros(Float64, n_locs, size(icc_csvs[1], 2) - 1, length(icc_csvs))
 
-    ordering_dict = Dict(id=>i for (i, id) in enumerate(canonical_gpkg.RME_GBRMPA_ID))
     for (sp_idx, icc_csv) in enumerate(icc_csvs)
-        order_perm = [ordering_dict[id] for id in icc_csv[:, 1]]
-        init_cover[:, :, sp_idx] .= icc_csv[order_perm, 2:end]
+        csv_id_to_row = Dict(string(id) => i for (i, id) in enumerate(icc_csv[:, 1]))
+        order_perm = [csv_id_to_row[string(id)] for id in canonical_gpkg.RME_GBRMPA_ID]
+        init_cover[:, :, sp_idx] .= Matrix(icc_csv[order_perm, 2:end])
     end
 
     init_cover = dropdims(mean(init_cover, dims=2), dims=2) ./ 100

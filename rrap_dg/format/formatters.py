@@ -78,7 +78,7 @@ def rme_connectivity(
 
     return "connectivity", "Aligned RME connectivity matrices with canonical UNIQUE IDs.", "csv"
 
-def standard_netcdf_dhw(
+def cmip6_downscaled_dhw(
     input_path: str,
     output_path: str,
     rcps: str = "2.6 4.5 7.0 8.5",
@@ -91,6 +91,7 @@ def standard_netcdf_dhw(
     """
     _timeframe = _parse_timeframe(timeframe)
     rcp_list = rcps.split()
+    print(input_path)
     
     # Default map as per original implementation
     rcp_ssp_map = {

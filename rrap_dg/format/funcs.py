@@ -1,6 +1,23 @@
 import netCDF4
 import numpy as np
 import pandas as pd
+import os
+import re
+
+def extract_model_name(filepath: str) -> str:
+    """Extract model name from filename."""
+    filename = os.path.basename(filepath)
+    # Search for _SSPxxx, _sspxxx, _xxx, or _historical (where xxx is digits)
+    # The user specifies model name is before _ssp<ssp>, _<ssp>, or _historical
+    match = re.search(r"_(?:SSP|ssp|historical)\d*|_\d{3}", filename)
+    if match:
+        name = filename[:match.start()]
+    else:
+        # Fallback: return filename without extension
+        name = os.path.splitext(filename)[0]
+
+    # Strip known prefix if present
+    return name.replace("CoralSea_GBR_", "")
 
 def validate_location_agreement(dhw_nc_handles: list) -> None:
     """Check that all netcdf files refer to the same locations."""
@@ -100,6 +117,7 @@ def format_single_rcp_dhw(
         GBRMPA_ID = nc_out.createVariable("GBRMPA_ID", str, ("locations",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         location_ID = nc_out.createVariable("locations", str, ("locations",))
+        model_name_ID = nc_out.createVariable("model_names", str, ("scenarios",))
         dhw_ID = nc_out.createVariable(
             "dhw", "f8", ("scenarios", "locations", "timesteps"), fill_value=1.0e35
         ) # Dimension order flipped to consistency with MATLAB/Julia
@@ -125,6 +143,9 @@ def format_single_rcp_dhw(
         location_ID.units = ""
         location_ID.long_name = "unique id"
 
+        model_name_ID.units = ""
+        model_name_ID.long_name = "climate model name"
+
         dhw_ID.units = "DegC-week"
         dhw_ID.long_name = "degree heating week"
 
@@ -134,6 +155,7 @@ def format_single_rcp_dhw(
         GBRMPA_ID[:] = nc_handles[0].variables['LABEL_ID'][:]
         unique_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
         location_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
+        model_name_ID[:] = np.array([extract_model_name(fp) for fp in dhw_nc_fps], dtype=object)
 
         for (idx, nc_handle) in enumerate(nc_handles):
             dhw_ID[idx, :, :] = nc_handle.variables['dhw_max'][:, start_yr_idx:end_yr_idx + 1]
@@ -217,12 +239,15 @@ def format_csv_dhw_model_group(
 
         time_ID = nc_out.createVariable("timesteps", "i4", ("timesteps",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        model_name_ID = nc_out.createVariable("model_names", str, ("scenarios",))
 
         dhw_ID = nc_out.createVariable(
             "dhw", "f8", ("scenarios", "locations", "timesteps")
         )
 
         time_ID.units = "year"
+        model_name_ID.long_name = "climate model name"
+        model_name_ID.units = ""
 
         dhw_ID.units = "DegC-week"
         dhw_ID.long_name = "degree heating week"
@@ -230,6 +255,7 @@ def format_csv_dhw_model_group(
 
         time_ID[:] = list(range(start_year, end_year + 1))
         unique_ID[:] = np.array(canonical_ids).astype(str)
+        model_name_ID[:] = np.array([extract_model_name(fp) for fp in csv_files], dtype=object)
 
         dhw_ID[:] = dhw_data
 

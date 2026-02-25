@@ -8,6 +8,10 @@ The `dhw` module is responsible for generating projected Degree Heating Week (DH
 
 Produces Degree Heating Week projections for a given cluster.
 
+*If you have already downloaded the RECOM and geospatial files seperately from the standard
+datapackage layout you can pass these filepaths directly instead of specifying a cluster
+name.*
+
 **Usage:**
 
 ```bash
@@ -30,8 +34,14 @@ uv run rrap_dg dhw generate [OPTIONS] CLUSTER_NAME INPUT_LOC OUTPUT_LOC
 
 ## Implementation Details
 
-The generation process involves:
+The `dhw` module generates projections using a combination of:
+- **NOAA Coral Reef Watch (CRW version 3.1)** satellite data.
+- **MIROC5 RCP projections** (2021 - 2099).
+- **RECOM** spatial multi-marine heat wave patterns.
 
+This work was ported to Python from original MATLAB code developed by **Dr. Veronique Lago** and modified by **Chinenye Ani**.
+
+The generation process involves:
 1. Extracting target areas from historical NOAA data.
 2. Detrending historical data using Gaussian fits.
 3. Stochastically generating yearly projections based on Generalized Extreme Value (GEV) distributions.
