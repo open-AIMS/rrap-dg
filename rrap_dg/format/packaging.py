@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Dict, List, Any
 
 from rrap_dg.datapackage import DataPackage, Resource, Source, Contributor
-from rrap_dg.utils import extract_metadata
+from rrap_dg.utils import extract_metadata, is_handle_id
 
 def finalize_dataset(
     output_path: str,
@@ -16,22 +16,30 @@ def finalize_dataset(
     Generates the datapackage.json for a formatted dataset.
     """
     output_dir = Path(output_path)
-    
+
     dp_sources = []
     contributors_map: Dict[str, Contributor] = {}
 
     for key, path_str in sources.items():
         path = Path(path_str)
-        if not path.exists():
-            continue
-            
-        title, desc, contact, created, published = extract_metadata(path)
+        # We check existence for local paths, but handles won't exist as local paths.
+        is_handle = is_handle_id(path_str)
         
+        if not is_handle and not path.exists():
+            continue
+
+        title, desc, contact, created, published = extract_metadata(path)
+
+        # Handle should be the ID if it's a datastore handle, otherwise blank for local
+        source_handle = path_str if is_handle else ""
+        # Path should be blank for handles
+        source_path = "" if is_handle else path_str
+
         dp_sources.append(Source(
             title=title,
             description=f"{desc} (Role: {key})",
-            path=str(path),
-            handle=key,
+            path=source_path,
+            handle=source_handle,
             created_date=created,
             published_date=published
         ))
@@ -65,5 +73,5 @@ def finalize_dataset(
     dpkg_path = output_dir / "datapackage.json"
     with open(dpkg_path, "w") as f:
         f.write(dpkg.model_dump_json(indent=4, exclude_none=True))
-    
+
     print(f"Datapackage generated at: {dpkg_path}")

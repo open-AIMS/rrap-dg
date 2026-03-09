@@ -3,6 +3,13 @@ import typer
 from pathlib import Path
 from typing import Tuple, Optional
 
+import re
+
+def is_handle_id(handle_id: str):
+    """Check if provided source is handle id."""
+    HANDLE_ID_REGEX = re.compile(r'^\d+\.\d+\.\d+/\d+$')
+    return bool(HANDLE_ID_REGEX.match(handle_id))
+
 def extract_metadata(dataset_path: Path) -> Tuple[str, str, Optional[str], Optional[str], Optional[str]]:
     """
     Tries to read metadata.json or ro-crate-metadata.json.

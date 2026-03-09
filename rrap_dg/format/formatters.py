@@ -8,9 +8,9 @@ from os.path import join as pj, basename
 
 from rrap_dg import PKG_PATH
 from .funcs import (
-    format_connectivity_file, 
-    reorder_location_perm, 
-    format_single_rcp_dhw, 
+    format_connectivity_file,
+    reorder_location_perm,
+    format_single_rcp_dhw,
     format_csv_dhw_model_group
 )
 
@@ -64,7 +64,7 @@ def rme_connectivity(
 
     rme_ids = pd.read_csv(rme_id_files[0], comment="#", header=None)
     canonical = gpd.read_file(canonical_path)
-    
+
     reorder_perm = reorder_location_perm(rme_ids[0], canonical.RME_GBRMPA_ID)
 
     os.makedirs(output_path, exist_ok=True)
@@ -92,7 +92,7 @@ def cmip6_downscaled_dhw(
     _timeframe = _parse_timeframe(timeframe)
     rcp_list = rcps.split()
     print(input_path)
-    
+
     # Default map as per original implementation
     rcp_ssp_map = {
         "2.6": "ssp126",
@@ -140,12 +140,12 @@ def rme_dhw(
     """
     _timeframe = _parse_timeframe(timeframe)
     rcp_list = rcps.split()
-    
+
     canonical = gpd.read_file(canonical_path)
     canonical_ids = canonical["UNIQUE_ID"].tolist()
 
     rcps_fn = {"2.6": "26", "4.5": "45", "7.0": "70", "8.5": "85"}
-    
+
     # Default match patterns
     rcp_match_patterns = {
         "2.6": ["126", "SSP126"],
@@ -183,7 +183,7 @@ def rme_dhw(
             _timeframe,
             canonical_ids
         )
-    
+
     return "dhw", "Grouped DHW CSVs by RCP and converted to NetCDF, aligned with canonical IDs.", "netcdf"
 
 def rme_icc(
@@ -196,7 +196,7 @@ def rme_icc(
     Returns (resource_name, description, format).
     """
     rme_root_path = _find_rme_root(input_path)
-    
+
     if not os.path.splitext(output_path)[1]:
         os.makedirs(output_path, exist_ok=True)
         out_file = pj(output_path, "coral_cover.nc")

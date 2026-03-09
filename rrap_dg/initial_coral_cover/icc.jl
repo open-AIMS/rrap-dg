@@ -427,7 +427,7 @@ function format_rme_icc(rme_path::String, canonical_path::String, output_path::S
     )
 
     properties = Dict()
-    arrs= Dict(:coral_cover => YAXArray(dims, init_cover'))
+    arrs= Dict(:layer => YAXArray(dims, init_cover'))
     ds = Dataset(; properties, arrs...)
 
     savedataset(ds; path=output_path, driver=:netcdf)
