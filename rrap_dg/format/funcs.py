@@ -187,7 +187,8 @@ def format_csv_dhw_model_group(
     csv_files: list[str],
     output_filepath: str,
     timeframe: tuple,
-    canonical_ids: list[str]
+    rme_gbrmpa_ids: list[str],
+    unique_ids: list[str]
 ) -> None:
     """
     Formats a group of CSV DHW files (representing one RCP/Scenario) into a NetCDF.
@@ -196,24 +197,30 @@ def format_csv_dhw_model_group(
         csv_files: List of paths to CSV files (one per GCM).
         output_filepath: Output NetCDF path.
         timeframe: (start_year, end_year) tuple.
-        canonical_ids: List of location IDs in the desired order.
+        unique_ids: List of location IDs in the desired order.
     """
     if not csv_files:
         return
 
     n_sims = len(csv_files)
-    n_locs = len(canonical_ids)
+    n_locs = len(unique_ids)
     start_year, end_year = timeframe
     n_years = end_year - start_year + 1
 
     dhw_data = np.zeros((n_sims, n_locs, n_years))
+    rme_gbrmpa_idx = pd.Index(rme_gbrmpa_ids)
+    unique_idx = pd.Index(unique_ids)
 
     for i, csv_path in enumerate(csv_files):
         df = pd.read_csv(csv_path)
 
         df.set_index(df.columns[0], inplace=True)
+        df_idx = pd.Index(df.index)
+        if set(rme_gbrmpa_idx) != set(df_idx):
+            raise ValueError(f"IDs in {csv_path} do not align with canonical GBRMPA IDs")
 
-        df = df.reindex(canonical_ids)
+        df = df.reindex(rme_gbrmpa_idx)
+        df.index = unique_idx
 
 
         try:
@@ -232,6 +239,7 @@ def format_csv_dhw_model_group(
 
         dhw_data[i, :, :] = subset
 
+    print("here")
     with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
         nc_out.createDimension("scenarios", n_sims)
         nc_out.createDimension("locations", n_locs)
@@ -240,6 +248,7 @@ def format_csv_dhw_model_group(
         time_ID = nc_out.createVariable("timesteps", "i4", ("timesteps",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         model_name_ID = nc_out.createVariable("model_names", str, ("scenarios",))
+        location_ID = nc_out.createVariable("locations", str, ("locations",))
 
         dhw_ID = nc_out.createVariable(
             "dhw", "f8", ("scenarios", "locations", "timesteps")
@@ -253,8 +262,12 @@ def format_csv_dhw_model_group(
         dhw_ID.long_name = "degree heating week"
         dhw_ID.missing_value = 1.0e35
 
+        location_ID.units = ""
+        location_ID.long_name = "unique id"
+
         time_ID[:] = list(range(start_year, end_year + 1))
-        unique_ID[:] = np.array(canonical_ids).astype(str)
+        unique_ID[:] = np.array(unique_ids).astype(str)
+        location_ID[:] = np.array(unique_ids).astype(str)
         model_name_ID[:] = np.array([extract_model_name(fp) for fp in csv_files], dtype=object)
 
         dhw_ID[:] = dhw_data

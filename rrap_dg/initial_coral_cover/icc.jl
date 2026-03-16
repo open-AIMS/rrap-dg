@@ -52,7 +52,13 @@ function _convert_abs_to_k(
     # Convert coral covers to be relative to k area, ignoring locations with 0 carrying
     # capacity (k area = 0.0).
     absolute_k_area = (spatial.k .* spatial.area)'  # max possible coral area in m^2
-    valid_locs::BitVector = absolute_k_area' .> 0.0
+    valid_locs::BitVector = coalesce.(absolute_k_area' .> 0.0, false)
+
+    invalid_locs = .!(valid_locs)
+    if any(invalid_locs)
+        @info "Locations with 0 or null carrying capacity in source data: $(spatial.LABEL_ID[invalid_locs])"
+    end
+
     coral_cover[:, valid_locs] .= (
         (coral_cover[:, valid_locs] .* spatial.area[valid_locs]') ./
         absolute_k_area[valid_locs]'
@@ -303,6 +309,15 @@ function downscale_icc(
     small_abs_k_area = (small_rel_k_areas .* small_ds.area)'
 
     has_capacity = vec(coalesce.(small_abs_k_area .> 0.0, false))
+
+    is_null = ismissing.(small_abs_k_area)
+    is_zero = coalesce.(small_abs_k_area .== 0.0, false)
+    if any(is_null)
+        @info "Locations with NULL carrying capacity in target cluster: $(small_ds.reef_siteid[vec(is_null)])"
+    end
+    if any(is_zero)
+        @info "Locations with 0 carrying capacity in target cluster: $(small_ds.reef_siteid[vec(is_zero)])"
+    end
 
     # Large ds clusters labels
     reef_labels_large = large_ds[match_ids, :LABEL_ID]

@@ -82,4 +82,5 @@ exclude_lines = [
 dev = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.3",
+    "pdbpp>=0.12.1",
 ]

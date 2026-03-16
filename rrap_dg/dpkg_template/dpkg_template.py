@@ -257,6 +257,16 @@ def build(
     print("Fetching Initial Coral Cover data...")
     fetch_dataset(icc_source, pj(final_output_path, "spatial"), resource_name="icc", specific_files=icc_files)
 
+    # Rename the ICC NetCDF to coral_cover.nc
+    icc_ncs = list(Path(spatial_dest).glob("*.nc"))
+    if icc_ncs:
+        # Assuming the first .nc is the ICC
+        old_icc = icc_ncs[0]
+        new_icc = Path(spatial_dest) / "coral_cover.nc"
+        if old_icc.name != new_icc.name:
+            print(f"Renaming {old_icc.name} -> {new_icc.name}")
+            old_icc.rename(new_icc)
+
     # Fetch Optional Datasets
     if cyclones_source:
         print("Fetching Cyclones data...")

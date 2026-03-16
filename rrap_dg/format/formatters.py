@@ -143,6 +143,7 @@ def rme_dhw(
 
     canonical = gpd.read_file(canonical_path)
     canonical_ids = canonical["UNIQUE_ID"].tolist()
+    rme_gbrmpa_ids = canonical["RME_GBRMPA_ID"].tolist()
 
     rcps_fn = {"2.6": "26", "4.5": "45", "7.0": "70", "8.5": "85"}
 
@@ -181,6 +182,7 @@ def rme_dhw(
             rcp_files,
             out_fp,
             _timeframe,
+            rme_gbrmpa_ids,
             canonical_ids
         )
 

@@ -117,23 +117,3 @@ def download(handle_id: str, dest: str) -> None:
             destination_directory=dest, dataset_id=handle_id
         )
     )
-
-
-@app.command(help="Download specific file/folder from RRAP M&DS Data Store.")
-def download_file(handle_id: str, s3_path: str, dest: str) -> None:
-    """
-    Download a specific file or folder from the RRAP M&DS data store.
-
-    Args:
-        handle_id: The dataset handle ID.
-        s3_path: The S3 path of the file or folder to download.
-        dest: The destination directory to save files to.
-    """
-    provena = get_provena_client()
-    run(
-        provena.datastore.io.download_specific_file(
-            dataset_id=handle_id,
-            s3_path=s3_path,
-            destination_directory=dest,
-        )
-    )
