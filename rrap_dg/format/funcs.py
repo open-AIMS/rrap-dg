@@ -91,7 +91,7 @@ def get_time_index(dhw_nc_handle, timeframe: tuple) -> tuple:
     return start_index, end_index
 
 def format_single_rcp_dhw(
-        dhw_nc_fps: list[str], output_filepath: str, timeframe: tuple
+        dhw_nc_fps: list[str], output_filepath: str, timeframe: tuple, variable_name: str = "dhw_max"
 ):
     n_sims = len(dhw_nc_fps)
     n_locs = 3806
@@ -106,7 +106,7 @@ def format_single_rcp_dhw(
     n_years = timeframe[1] - timeframe[0] + 1
 
     with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
-        # Define Dimensions
+        # ... (rest of dimension/variable setup) ...
         nc_out.createDimension("scenarios", n_sims)
         nc_out.createDimension("locations", n_locs)
         nc_out.createDimension("timesteps", n_years)
@@ -158,7 +158,7 @@ def format_single_rcp_dhw(
         model_name_ID[:] = np.array([extract_model_name(fp) for fp in dhw_nc_fps], dtype=object)
 
         for (idx, nc_handle) in enumerate(nc_handles):
-            dhw_ID[idx, :, :] = nc_handle.variables['dhw_max'][:, start_yr_idx:end_yr_idx + 1]
+            dhw_ID[idx, :, :] = nc_handle.variables[variable_name][:, start_yr_idx:end_yr_idx + 1]
 
     return None
 

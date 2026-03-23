@@ -53,7 +53,8 @@ def cmip6_downscaled_dhw_cmd(
     output_path: str = typer.Option(..., help="Output directory."),
     rcps: str = typer.Option("2.6 4.5 7.0 8.5", help="Space-separated list of RCPs."),
     timeframe: str = typer.Option("2025 2099", help="Timeframe 'YYYY YYYY'."),
-    filename_template: str = typer.Option("*{ssp}*", help="Glob template for finding files.")
+    filename_template: str = typer.Option("*{ssp}*", help="Glob template for finding files."),
+    variable_name: str = typer.Option("dhw_max", help="Variable name in the NetCDF files.")
 ):
     """
     Format CMIP6 Statistically Downscaled NetCDF DHW files.
@@ -68,7 +69,8 @@ def cmip6_downscaled_dhw_cmd(
         output_path=output_path,
         rcps=rcps,
         timeframe=timeframe,
-        filename_template=filename_template
+        filename_template=filename_template,
+        variable_name=variable_name
     )
     finalize_dataset(
         output_path, 

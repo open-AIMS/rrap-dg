@@ -83,7 +83,8 @@ def cmip6_downscaled_dhw(
     output_path: str,
     rcps: str = "2.6 4.5 7.0 8.5",
     timeframe: str = "2025 2099",
-    filename_template: str = "*{ssp}*"
+    filename_template: str = "*{ssp}*",
+    variable_name: str = "dhw_max"
 ) -> Tuple[str, str, str]:
     """
     Formats standard NetCDF DHW files.
@@ -122,7 +123,7 @@ def cmip6_downscaled_dhw(
             print(f"Warning: No source files found for RCP corresponding to {out_fp}")
             continue
         print(f"  Formatting to {out_fp}")
-        format_single_rcp_dhw(src_files, out_fp, _timeframe)
+        format_single_rcp_dhw(src_files, out_fp, _timeframe, variable_name=variable_name)
 
     return "dhw", "Standardized NetCDF DHW files and aligned spatial coordinates.", "netcdf"
 

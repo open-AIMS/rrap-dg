@@ -372,10 +372,7 @@ function downscale_icc(
     icc = downscale_icc(rme_icc, gbr_gpkg, target_gpkg)
 
     try
-        arrs = Dict(:icc => icc)
-        properties = Dict()
-        ds = Dataset(; properties, arrs...)
-        savedataset(ds; path=output_path, driver=:netcdf)
+        savecube(icc, output_path, driver=:netcdf; overwrite=true)
     catch err
         if err isa ArgumentError
             @info "File appears to already exist or cannot be written to."
