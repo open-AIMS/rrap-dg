@@ -1,5 +1,7 @@
 import warnings
 import re
+import psutil
+import os
 from os.path import join as pj
 from glob import glob
 
@@ -29,6 +31,12 @@ from .dhw_funcs import (
 
 
 app = typer.Typer()
+
+
+def print_mem(label: str):
+    process = psutil.Process(os.getpid())
+    mem_mb = process.memory_info().rss / (1024 * 1024)
+    print(f"[{label}] RAM Used: {mem_mb:.2f} MiB")
 
 
 @app.command(help="Generate Degree Heating Week datasets")
@@ -66,6 +74,8 @@ def generate(
     CRW : Coral Reef Watch
     RCP : Representative Concentration Pathway
     """
+    print_mem("Start")
+    
     # TODO: Leverage metadata in datapackage.json to identify all data files
     #       Currently only the cluster name is extracted.
     # md = dpkg.DataPackage(pj(input_loc, "datapackage.json"))
@@ -77,10 +87,12 @@ def generate(
     hist_dhw_data = xr.open_dataset(pj(input_loc, "NOAA", "GBR_dhw_hist_noaa.nc"))
     crs_code = hist_dhw_data.attrs["geospatial_bounds_crs"]
     hist_dhw_data = hist_dhw_data.rio.write_crs(crs_code)
+    print_mem("After NOAA Load")
 
     # Read spatial data and ensure CRS matches
     _gpkg_path = gpkg_path if gpkg_path else pj(input_loc, "spatial", f"{cluster_name}.gpkg")
     cluster_poly = gpd.read_file(_gpkg_path).to_crs(crs_code)
+    print_mem("After Geopackage Load")
 
     # Clunky way of getting the scale factor
     # There's probably a better way
@@ -125,6 +137,10 @@ def generate(
     recom_files = glob(pj(_recom_dir, f"*{cluster_name}*_*_dhw*.nc"))
     recom_data = extract_DHW_pattern(recom_files)
     dhw_pattern, mean_dhw_pattern, recom_lon, recom_lat = recom_data
+    print_mem("After RECOM Load")
+
+    if np.isnan(mean_dhw_pattern):
+        print("WARNING: mean_dhw_pattern is NaN")
 
     # Regex rule to identify projection timeframe
     cmp = re.compile(r"([0-9]{4})_([0-9]{4})")
@@ -158,52 +174,34 @@ def generate(
         # Prep projected data
         # TODO: Get file location from datapackage
         p_df = pd.read_csv(pj(input_loc, "MIROC5", proj_fn), header=None)
+        print_mem(f"RCP {RCP}: After MIROC5 CSV Load")
 
-        # WARNING: Assumes order of locations align with NOAA dataset.
-        #          Original approach attempted to match up locations
-        #          based on index positions (with table/DataFrame).
-        #          The line below uses the lon/lat values
-        #              >>> projected_data.loc[(common_lons, common_lats), :]
-        #
-        #          Both identify a single cell (suspicious?).
-        #
-        #          Lon/lat of original approach: 146.1809 -16.803
-        #          This approach:                146.2486 -16.9116
-        #          Mean difference (orig - new): 0.13649
-        #
-        #          A more robust approach would be to leverage
-        #          xarray instead (the approach used below).
-        #          However, this identifies a larger area
-        #          15x4, as opposed to the 1x1 area.
-        lonlat_index = pd.MultiIndex.from_tuples(
-            zip(gbr_reef_lon, gbr_reef_lat), name=("lon", "lat")
-        )
-        p_df.index = lonlat_index
-        projected_data = p_df.to_xarray()
-        projected_data = projected_data.assign_coords(
-            {
-                "time": pd.to_datetime(list(range(*proj_range)), format="%Y"),
-            }
-        )
-
-        # TODO FIX:
-        # This produces a single time series of mean projected values for target cluster
-        # It should instead be the values across the spatial domain (not just the mean)
-        # Complication is that the lon/lats does not appear to line up, so it results in all nan values.
-        proj_domain_mean_dhw = (
-            projected_data.sel(lon=c_lon, lat=c_lat, method="nearest")
-            .to_array()
-            .max(dim=("lon", "lat"))
-            .values
-        )
+        # Vectorized nearest neighbor search for all cluster sites in the MIROC5 list
+        # We find the indices of the GBR-wide sites closest to each of our cluster sites.
+        gbr_reef_lonlats = np.array(list(zip(gbr_reef_lon, gbr_reef_lat)))
+        cluster_site_indices = []
+        for c_lon_i, c_lat_i in zip(c_lon, c_lat):
+            # Sum of absolute differences (Manhattan distance) for speed
+            dists = np.abs(gbr_reef_lonlats[:, 0] - c_lon_i) + np.abs(gbr_reef_lonlats[:, 1] - c_lat_i)
+            cluster_site_indices.append(np.argmin(dists))
+        
+        # Extract projected data for only the sites in our cluster and take the max trend
+        cluster_proj_data = p_df.iloc[cluster_site_indices].values
+        proj_domain_mean_dhw = np.max(cluster_proj_data, axis=0)
+        print_mem(f"RCP {RCP}: After Cluster Data Subset")
 
         # historic data constrained to area of interest
+        # Convert coordinates to Xarray data arrays for vectorized selection
+        # This returns a 1D list of values for the sites, not a 2D spatial grid.
+        lons_da = xr.DataArray(c_lon, dims="locations")
+        lats_da = xr.DataArray(c_lat, dims="locations")
+        
         hist_domain_dhw = hist_dhw_data.sel(
-            {"longitude": c_lon, "latitude": c_lat}, method="nearest"
+            longitude=lons_da, latitude=lats_da, method="nearest"
         )
-        hist_domain_mean_dhw = hist_domain_dhw.mean(
-            dim=("longitude", "latitude")
-        ).squeeze()
+        print_mem(f"RCP {RCP}: After hist_domain_dhw.sel (Vectorized)")
+        
+        hist_domain_mean_dhw = hist_domain_dhw.mean(dim="locations").squeeze()
 
         dens_prob, domain_max_DHW_detrend = detrended_max_DHW(
             hist_domain_mean_dhw, proj_domain_mean_dhw, gen_year_tf, proj_range
@@ -217,7 +215,10 @@ def generate(
 
         dist97 = gev.ppf(0.97, *dens_prob[0])
 
-        # Get identified lon/lats
+        if np.isnan(dist97):
+            print(f"WARNING: dist97 is NaN for RCP {RCP}")
+
+        # Get identified lon/lats for the specific sites
         domain_lonlats = np.array(
             list(
                 zip(
@@ -227,15 +228,15 @@ def generate(
             )
         )
 
-        # Remove superfluous dimensions
-        hist_domain_dhw = hist_domain_dhw.to_array().squeeze()
-
         # Apply spatial adjustment
         for site_i in range(cluster_lonlats.shape[0]):
+            if site_i % 50 == 0:
+                print_mem(f"RCP {RCP}: Site {site_i}/{cluster_lonlats.shape[0]}")
             # Find data closest to this site's coordinates
             site_lonlats = (cluster_lonlats[site_i, 0], cluster_lonlats[site_i, 1])
+            closest_dhw_ds = get_closest_data(site_lonlats, recom_lonlats, dhw_pattern)
             closest_dhw = (
-                get_closest_data(site_lonlats, recom_lonlats, dhw_pattern)
+                closest_dhw_ds
                 .to_array()
                 .data.mean()
             )
@@ -245,20 +246,15 @@ def generate(
             spatialadj = closest_dhw - mean_dhw_pattern
 
             # Get the location specific trend lat/lon and MIROC5 trend
-            # Get time series for target area
-            hist_dhw_ts = get_closest_data(
-                site_lonlats, domain_lonlats, hist_domain_dhw
-            )
-
-            # Get projected DHWs for target area
-            # x = np.array(list(zip(common_lons, common_lats)))
-            # target_proj_dhw = get_closest_data(site_lonlats, domain_lonlats, proj_data.to_array())
-            # domain_hist_dhw.sel({'longitude': target_lonlat[0], 'latitude': target_lonlat[1]}, method='nearest')
+            # The historical data for this site is now directly indexable
+            # We use isel to keep it as an Xarray object with coordinates
+            hist_dhw_ts = hist_domain_dhw.isel(locations=site_i)
 
             # Get projected DHW trend
             _, combined_timeframe, combined_dhw_data = create_max_DHW(
                 hist_dhw_ts, proj_domain_mean_dhw, proj_range
             )
+            
             gauss_fit_site = fit_gauss(combined_timeframe, combined_dhw_data)
 
             # The first timeseries needs to be the exact MIROC5 projection
@@ -295,6 +291,10 @@ def generate(
                         continue
 
                     dhw[sim_i, site_i, yr_s] = dhw_r + (spatialadj * (dhw_r / dist97)) 
+
+            if np.isnan(dhw[:, site_i, :]).any():
+                if site_i == 0:
+                    print(f"WARNING: dhw contains NaNs for site {site_i}, RCP {RCP}")
 
             # Make values > 0 as negative DHW is not possible.
             dhw = np.maximum(dhw, 0.0)
@@ -360,8 +360,5 @@ def generate(
 
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
-
-
-# if __name__ == "__main__":
-#     typer.run(generate_DHWs)
-#     generate_DHWs("C:/development/ADRIA_data/DHW", "C:/development/ADRIA_data/DHW")
+        
+        print_mem(f"RCP {RCP}: After NetCDF Write")
