@@ -155,9 +155,12 @@ def create_max_DHW(
         - combined max DHW across hist/projected time periods
     """
     # Find max historical DHW by grouping each unique year and getting the max
-    hist_max_DHW = (
-        hist_dhw.groupby("time.year").max(dim=...).to_array().values.squeeze()
-    )
+    # Handle both Dataset and DataArray
+    hist_max_DHW_ds = hist_dhw.groupby("time.year").max(dim=...)
+    if isinstance(hist_max_DHW_ds, xr.Dataset):
+        hist_max_DHW = hist_max_DHW_ds.to_array().values.squeeze()
+    else:
+        hist_max_DHW = hist_max_DHW_ds.values.squeeze()
 
     # Concatenate the data in a single array
     time_yr = np.unique(hist_dhw.time.dt.year.data)
