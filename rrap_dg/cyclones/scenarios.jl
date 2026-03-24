@@ -74,15 +74,17 @@ end
 Vector of ids from the large_df for reefs that intersect any of the reefs from the small_df
 """
 function _match_gdf_ids(large_gdf::DataFrame, small_gdf::DataFrame)
+    l_col = :geom in propertynames(large_gdf) ? :geom : :geometry
+    s_col = :geom in propertynames(small_gdf) ? :geom : :geometry
     return unique(
         vcat(
-            [findall(GDF.intersects.(large_gdf.geom, [geom])) for geom in small_gdf.geom]...
+             [findall(GDF.intersects.(large_gdf[:, l_col], [geom])) for geom in small_gdf[:, s_col]]...
         ),
     )
 end
 
 """
-Returns a YAXArray with dimensions (:labels, :filters) where :labels are LABEL_IDs for rme
+Returns a YAXArray with dimensions (:labels, :filters) where :labels are GBRMPA_ID for rme
 reefs and :filters are booleans each rrap location that are true when that rrap location
 belongs to the correspondent rme reef
 """
@@ -97,7 +99,7 @@ function _reef_filters(rme_gdf::DataFrame, target_gdf::DataFrame, match_ids::Vec
         rme_name in rme_names
     ]
 
-    rme_label_ids = rme_gdf[match_ids, :].LABEL_ID
+    rme_label_ids = rme_gdf[match_ids, :].GBRMPA_ID
     axlist = (Dim{:labels}(rme_label_ids), Dim{:filters}(1:length(rrap_names)))
     return YAXArray(axlist, hcat(sites_by_reef...)')
 end
