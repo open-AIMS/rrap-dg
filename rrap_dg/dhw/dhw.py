@@ -267,6 +267,7 @@ def generate(
             lon_ID = nc_out.createVariable("longitude", "f8", ("locations",))
             lat_ID = nc_out.createVariable("latitude", "f8", ("locations",))
             reef_ID = nc_out.createVariable("reef_siteid", str, ("locations",))
+            location_ID = nc_out.createVariable("locations", str, ("locations",))
             unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
             dhw_ID = nc_out.createVariable("dhw", "f8", ("member", "locations", "timesteps"))
 
@@ -287,6 +288,11 @@ def generate(
             reef_ID.long_name = "reef site id"
             reef_ID.standard_name = "reef_site_id"
 
+            location_ID.coordinates = "locations"
+            location_ID.units = ""
+            location_ID.long_name = "location id"
+            location_ID.standard_name = "location_id"
+
             unique_ID.coordinates = "locations"
             unique_ID.units = ""
             unique_ID.long_name = "unique id"
@@ -304,6 +310,7 @@ def generate(
             # Use 'site_id' if available, otherwise fallback to 'reef_siteid'
             site_id_col = "site_id" if "site_id" in cluster_poly.columns else "reef_siteid"
             reef_ID[:] = cluster_poly.loc[:, site_id_col].to_numpy()
+            location_ID[:] = cluster_poly.loc[:, site_id_col].to_numpy()
 
             unique_ID[:] = cluster_poly.loc[:, "UNIQUE_ID"].to_numpy().astype("str")
             dhw_ID[:] = dhw
