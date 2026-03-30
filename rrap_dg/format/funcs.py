@@ -90,6 +90,89 @@ def get_time_index(dhw_nc_handle, timeframe: tuple) -> tuple:
 
     return start_index, end_index
 
+def format_mcb_dhw_with_prepend(
+    hist_fps: list[str],
+    proj_fps: list[str],
+    output_filepath: str,
+    hist_timeframe: tuple,
+    proj_timeframe: tuple,
+    hist_var: str = "dhw_max_0",
+    proj_var: str = "dhw_max_150"
+):
+    """
+    Consolidates DHW files by prepending historical data (usually dhw_max_0)
+    onto projection data (e.g. dhw_max_150).
+    """
+    import os
+    import re
+
+    # 1. Match models between hist and proj
+    def get_model(fp):
+        # Specific match for the filenames like:
+        # CoralSea_GBR_ACCESS-CM2_historical_r1i1p1f1_dhw_1951-2014-reefs-MCB-Cairns-albedo-02.nc
+        # Split by '_' and take the 3rd element
+        return os.path.basename(fp).split("_")[2]
+
+    hist_models = {get_model(f): f for f in hist_fps}
+    proj_models = {get_model(f): f for f in proj_fps}
+    
+    # Common models
+    common_models = sorted(list(set(hist_models.keys()) & set(proj_models.keys())))
+    if not common_models:
+        raise ValueError("No common models found between historical and projection sets.")
+
+    n_sims = len(common_models)
+    n_locs = 3806
+    n_years = (proj_timeframe[1] - hist_timeframe[0] + 1)
+
+    with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
+        nc_out.createDimension("scenarios", n_sims)
+        nc_out.createDimension("locations", n_locs)
+        nc_out.createDimension("timesteps", n_years)
+
+        lon_v = nc_out.createVariable("longitude", "f8", ("locations",))
+        lat_v = nc_out.createVariable("latitude", "f8", ("locations",))
+        time_v = nc_out.createVariable("timesteps", "i4", ("timesteps",))
+        model_v = nc_out.createVariable("model_names", str, ("scenarios",))
+        unique_id_v = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        location_id_v = nc_out.createVariable("locations", str, ("locations",))
+        
+        # Output as (scenarios, locations, timesteps) for ADRIA
+        dhw_v = nc_out.createVariable(
+            "dhw", "f4", ("scenarios", "locations", "timesteps"), 
+            fill_value=1.0e35, zlib=True, complevel=4
+        )
+
+        time_v[:] = np.arange(hist_timeframe[0], proj_timeframe[1] + 1)
+        model_v[:] = np.array(common_models, dtype=object)
+
+        # Get metadata from first projection file
+        with netCDF4.Dataset(proj_models[common_models[0]], 'r') as ds:
+            ids = np.array(ds.variables['UNIQUE_ID'][:]).astype(int).astype(str)
+            unique_id_v[:] = ids
+            location_id_v[:] = ids
+            lat_v[:] = ds.variables['lat_reef'][:]
+            lon_v[:] = ds.variables['lon_reef'][:]
+
+        # Fill Data
+        for m_idx, model in enumerate(common_models):
+            print(f"    Processing model: {model}")
+            # Hist chunk
+            with netCDF4.Dataset(hist_models[model], 'r') as ds_h:
+                h_start, h_end = get_time_index(ds_h, hist_timeframe)
+                h_chunk = ds_h.variables[hist_var][:, h_start : h_end + 1]
+            
+            # Proj chunk
+            with netCDF4.Dataset(proj_models[model], 'r') as ds_p:
+                p_start, p_end = get_time_index(ds_p, proj_timeframe)
+                p_chunk = ds_p.variables[proj_var][:, p_start : p_end + 1]
+
+            # Concat and save
+            full_ts = np.concatenate([h_chunk, p_chunk], axis=1)
+            dhw_v[m_idx, :, :] = full_ts
+
+    return None
+
 def format_single_rcp_dhw(
         dhw_nc_fps: list[str], output_filepath: str, timeframe: tuple, variable_name: str = "dhw_max"
 ):
@@ -271,5 +354,150 @@ def format_csv_dhw_model_group(
         model_name_ID[:] = np.array([extract_model_name(fp) for fp in csv_files], dtype=object)
 
         dhw_ID[:] = dhw_data
+
+    return None
+
+def format_5d_mcb_dhw(
+    input_dir: str,
+    output_filepath: str,
+    region: str,
+    ssp: str,
+    hist_timeframe: tuple = (2007, 2014),
+    proj_timeframe: tuple = (2015, 2100)
+):
+    """
+    Consolidates raw MCB NetCDF files for a specific SSP into a 5D NetCDF,
+    prepending historical data (2007-2014) with MCB to projections (2015-2100).
+    
+    Dimensions: (albedo, mcb_durations, scenarios, locations, timesteps)
+    """
+    import glob
+    import os
+    
+    albedo_subdirs = ["Albedo_0.2", "Albedo_0.3"]
+    albedo_vals = [0.2, 0.3]
+    mcb_durations = [0, 50, 100, 150]
+    mcb_vars = ["dhw_max_0", "dhw_max_50", "dhw_max_100", "dhw_max_150"]
+    
+    # 1. Collect all projection files for the region and specific SSP
+    proj_files = []
+    for alb_sub in albedo_subdirs:
+        alb_val = float(alb_sub.split("_")[1])
+        pattern = os.path.join(input_dir, region, alb_sub, "Projections", f"*{ssp}*.nc")
+        fps = glob.glob(pattern)
+        for fp in fps:
+            with netCDF4.Dataset(fp, 'r') as ds:
+                model = getattr(ds, 'parent_source_id', "unknown")
+            proj_files.append({
+                'path': fp,
+                'albedo': alb_val,
+                'model': model
+            })
+
+    # 2. Collect historical files for the same region
+    hist_files = []
+    for alb_sub in albedo_subdirs:
+        alb_val = float(alb_sub.split("_")[1])
+        pattern = os.path.join(input_dir, region, alb_sub, "Historical", "*.nc")
+        fps = glob.glob(pattern)
+        for fp in fps:
+            with netCDF4.Dataset(fp, 'r') as ds:
+                model = getattr(ds, 'parent_source_id', "unknown")
+            hist_files.append({
+                'path': fp,
+                'albedo': alb_val,
+                'model': model
+            })
+            
+    # Identify unique Models common to all albedo/hist/proj sets
+    models_per_alb = {}
+    for alb in albedo_vals:
+        p_models = {f['model'] for f in proj_files if f['albedo'] == alb}
+        h_models = {f['model'] for f in hist_files if f['albedo'] == alb}
+        models_per_alb[alb] = p_models & h_models
+    
+    models = sorted(list(set.intersection(*models_per_alb.values())))
+    if not models:
+        raise ValueError(f"No common models found for region {region} and SSP {ssp}")
+
+    n_scenarios = len(models)
+    n_mcb = len(mcb_durations)
+    n_albedo = len(albedo_vals)
+    n_locs = 3806
+    n_years = (proj_timeframe[1] - hist_timeframe[0] + 1)
+    
+    # 3. Create output NetCDF
+    with netCDF4.Dataset(output_filepath, "w", format="NETCDF4") as nc_out:
+        nc_out.createDimension("albedo", n_albedo)
+        nc_out.createDimension("mcb_durations", n_mcb)
+        nc_out.createDimension("scenarios", n_scenarios)
+        nc_out.createDimension("locations", n_locs)
+        nc_out.createDimension("timesteps", n_years)
+        
+        # Variables
+        time_v = nc_out.createVariable("timesteps", "i4", ("timesteps",))
+        unique_id_v = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        location_id_v = nc_out.createVariable("locations", str, ("locations",))
+        lat_v = nc_out.createVariable("latitude", "f8", ("locations",))
+        lon_v = nc_out.createVariable("longitude", "f8", ("locations",))
+        model_v = nc_out.createVariable("model_names", str, ("scenarios",))
+        mcb_v = nc_out.createVariable("mcb_durations", "i4", ("mcb_durations",))
+        albedo_v = nc_out.createVariable("albedo", "f4", ("albedo",))
+        
+        # 5D DHW variable - Reordered to (albedo, mcb_durations, scenarios, locations, timesteps)
+        dhw_v = nc_out.createVariable(
+            "dhw", "f4", ("albedo", "mcb_durations", "scenarios", "locations", "timesteps"),
+            fill_value=1.0e35,
+            zlib=True, complevel=4
+        )
+        
+        # Attributes
+        time_v.units = "year"
+        mcb_v.units = "days"
+        albedo_v.units = "fraction"
+        dhw_v.units = "DegC-week"
+        lat_v.units = "degrees_north"
+        lon_v.units = "degrees_east"
+        
+        # Fill coords
+        time_v[:] = np.arange(hist_timeframe[0], proj_timeframe[1] + 1)
+        mcb_v[:] = np.array(mcb_durations)
+        albedo_v[:] = np.array(albedo_vals)
+        model_v[:] = np.array(models, dtype=object)
+        
+        # Load one file to get static reef data
+        with netCDF4.Dataset(proj_files[0]['path'], 'r') as ds:
+            ids = np.array(ds.variables['UNIQUE_ID'][:]).astype(int).astype(str)
+            unique_id_v[:] = ids
+            location_id_v[:] = ids
+            lat_v[:] = ds.variables['lat_reef'][:]
+            lon_v[:] = ds.variables['lon_reef'][:]
+
+        # Helper to find file path
+        def find_fp(file_list, model, albedo):
+            for f in file_list:
+                if f['model'] == model and f['albedo'] == albedo:
+                    return f['path']
+            return None
+
+        # 4. Fill Data
+        for alb_idx, alb_val in enumerate(albedo_vals):
+            for scen_idx, model in enumerate(models):
+                p_fp = find_fp(proj_files, model, alb_val)
+                h_fp = find_fp(hist_files, model, alb_val)
+                
+                print(f"  Consolidating {region} | {ssp} | Albedo {alb_val} | {model} (with prepend)")
+                with netCDF4.Dataset(h_fp, 'r') as ds_h, netCDF4.Dataset(p_fp, 'r') as ds_p:
+                    h_start, h_end = get_time_index(ds_h, hist_timeframe)
+                    p_start, p_end = get_time_index(ds_p, proj_timeframe)
+                    
+                    for mcb_idx, mcb_var in enumerate(mcb_vars):
+                        h_chunk = ds_h.variables[mcb_var][:, h_start : h_end + 1]
+                        p_chunk = ds_p.variables[mcb_var][:, p_start : p_end + 1]
+                        
+                        # Concatenate and save to 5D: (albedo, mcb_durations, scenarios, locations, timesteps)
+                        dhw_v[alb_idx, mcb_idx, scen_idx, :, :] = np.concatenate([h_chunk, p_chunk], axis=1)
+
+    return None
 
     return None

@@ -3,6 +3,8 @@ from pathlib import Path
 from rrap_dg.format.formatters import (
     rme_connectivity,
     cmip6_downscaled_dhw,
+    cmip6_consolidated_mcb_dhw,
+    cmip6_mcb_dhw_prepend,
     rme_dhw,
     rme_icc
 )
@@ -144,6 +146,76 @@ def rme_icc_cmd(
         output_path,
         {"input": input_path, "canonical_spatial": canonical_path},
         formatter_name="RME ICC",
+        resource_name=res_name,
+        resource_description=res_desc,
+        resource_format=res_fmt
+    )
+
+
+@app.command(name="cmip6-consolidated-mcb")
+def cmip6_consolidated_mcb_cmd(
+    input_path: str = typer.Option(..., help="Path to root of raw MCB NetCDF files."),
+    output_path: str = typer.Option(..., help="Output directory."),
+    region: str = typer.Option(..., help="Region name (e.g., 'Cairns' or 'GBR')."),
+    hist_timeframe: str = typer.Option("2007 2014", help="Historical timeframe 'YYYY YYYY'."),
+    proj_timeframe: str = typer.Option("2015 2100", help="Projection timeframe 'YYYY YYYY'.")
+):
+    """
+    Consolidate raw MCB NetCDF files into a 5D NetCDF with historical prepend.
+    """
+    print("Checking for Input metadata.json file.")
+    found = validate_metadata_presence(Path(input_path))
+    if found: print("  Found metadata.json.")
+
+    print(f"Running cmip6-consolidated-mcb formatting for {region}...")
+    res_name, res_desc, res_fmt = cmip6_consolidated_mcb_dhw(
+        input_path=input_path,
+        output_path=output_path,
+        region=region,
+        hist_timeframe=hist_timeframe,
+        proj_timeframe=proj_timeframe
+    )
+    finalize_dataset(
+        output_path,
+        {"input": input_path},
+        formatter_name="CMIP6 Consolidated MCB DHW",
+        resource_name=res_name,
+        resource_description=res_desc,
+        resource_format=res_fmt
+    )
+
+
+@app.command(name="cmip6-mcb-prepend")
+def cmip6_mcb_prepend_cmd(
+    input_path: str = typer.Option(..., help="Path to root of raw MCB NetCDF files."),
+    output_path: str = typer.Option(..., help="Output directory."),
+    region: str = typer.Option(..., help="Region name (e.g., 'Cairns' or 'GBR')."),
+    albedo: str = typer.Option("0.3", help="Albedo value (e.g. 0.2, 0.3)."),
+    mcb_duration: int = typer.Option(150, help="MCB duration (0, 50, 100, 150)."),
+    hist_timeframe: str = typer.Option("2007 2014", help="Historical timeframe 'YYYY YYYY'."),
+    proj_timeframe: str = typer.Option("2015 2100", help="Projection timeframe 'YYYY YYYY'.")
+):
+    """
+    Format 3D MCB DHW NetCDFs with historical data prepended.
+    """
+    print("Checking for Input metadata.json file.")
+    found = validate_metadata_presence(Path(input_path))
+    if found: print("  Found metadata.json.")
+
+    print(f"Running cmip6-mcb-prepend for {region} | Alb {albedo} | MCB {mcb_duration}d...")
+    res_name, res_desc, res_fmt = cmip6_mcb_dhw_prepend(
+        input_path=input_path,
+        output_path=output_path,
+        region=region,
+        albedo=albedo,
+        mcb_duration=mcb_duration,
+        hist_timeframe=hist_timeframe,
+        proj_timeframe=proj_timeframe
+    )
+    finalize_dataset(
+        output_path,
+        {"input": input_path},
+        formatter_name="CMIP6 MCB Prepend DHW",
         resource_name=res_name,
         resource_description=res_desc,
         resource_format=res_fmt

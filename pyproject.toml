@@ -37,6 +37,7 @@ dependencies = [
     "provenaclient",
     "pydantic>=2.0",
     "pydantic-settings",
+    "matplotlib>=3.10.8",
 ]
 dynamic = ["version"]
 

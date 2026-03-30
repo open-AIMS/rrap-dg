@@ -11,7 +11,9 @@ from .funcs import (
     format_connectivity_file,
     reorder_location_perm,
     format_single_rcp_dhw,
-    format_csv_dhw_model_group
+    format_mcb_dhw_with_prepend,
+    format_csv_dhw_model_group,
+    format_5d_mcb_dhw
 )
 
 # Initialize Julia module for ICC
@@ -211,3 +213,103 @@ def rme_icc(
     jl_icc.format_rme_icc(rme_root_path, canonical_path, out_file)
 
     return "coral_cover", "Processed RME Initial Coral Cover to NetCDF using spatial averaging.", "netcdf"
+
+
+def cmip6_mcb_dhw_prepend(
+    input_path: str,
+    output_path: str,
+    region: str,
+    albedo: str,
+    mcb_duration: int,
+    hist_timeframe: str = "2007 2014",
+    proj_timeframe: str = "2015 2100"
+) -> Tuple[str, str, str]:
+    """
+    Consolidates MCB DHW files by prepending historical baseline (2007-2014) 
+    to projections (2015-2100).
+    """
+    _h_timeframe = _parse_timeframe(hist_timeframe)
+    _p_timeframe = _parse_timeframe(proj_timeframe)
+    os.makedirs(output_path, exist_ok=True)
+
+    alb_sub = f"Albedo_{albedo}"
+    mcb_var = f"dhw_max_{mcb_duration}"
+    hist_var = "dhw_max_0" # Use clean baseline for history
+
+    ssp_map = {
+        "ssp126": "RCP26",
+        "ssp245": "RCP45",
+        "ssp370": "RCP70",
+        "ssp585": "RCP85"
+    }
+
+    # Find historical files
+    hist_pattern = os.path.join(input_path, region, alb_sub, "Historical", "*.nc")
+    hist_fps = glob.glob(hist_pattern)
+    if not hist_fps:
+        raise ValueError(f"No historical files found in {hist_pattern}")
+
+    for ssp, rcp_label in ssp_map.items():
+        out_fp = os.path.join(output_path, f"dhw{rcp_label}.nc")
+        print(f"  Formatting {region} | {alb_sub} | MCB {mcb_duration}d | {ssp} (with prepend) -> {out_fp}")
+        
+        # Find projection files for this SSP
+        proj_pattern = os.path.join(input_path, region, alb_sub, "Projections", f"*{ssp}*.nc")
+        proj_fps = glob.glob(proj_pattern)
+        
+        if not proj_fps:
+            print(f"  Warning: No projection files found for {ssp}")
+            continue
+
+        format_mcb_dhw_with_prepend(
+            hist_fps, 
+            proj_fps, 
+            out_fp, 
+            _h_timeframe, 
+            _p_timeframe, 
+            hist_var, 
+            mcb_var
+        )
+
+    return "dhw", f"Consolidated 3D MCB DHW datasets for {region} (Alb {albedo}, MCB {mcb_duration}d) with historical prepend ({hist_timeframe}).", "netcdf"
+
+
+def cmip6_consolidated_mcb_dhw(
+    input_path: str,
+    output_path: str,
+    region: str,
+    hist_timeframe: str = "2007 2014",
+    proj_timeframe: str = "2015 2100"
+) -> Tuple[str, str, str]:
+    """
+    Consolidates raw MCB NetCDF files into 5D NetCDF files (one per SSP/RCP).
+    Returns (resource_name, description, format).
+    """
+    _hist_tf = _parse_timeframe(hist_timeframe)
+    _proj_tf = _parse_timeframe(proj_timeframe)
+    os.makedirs(output_path, exist_ok=True)
+
+    # CMIP6 SSPs to consolidate
+    ssp_map = {
+        "ssp126": "RCP26",
+        "ssp245": "RCP45",
+        "ssp370": "RCP70",
+        "ssp585": "RCP85"
+    }
+
+    for ssp, rcp_label in ssp_map.items():
+        out_fp = os.path.join(output_path, f"dhw_mcb_5d_{region}_{rcp_label}.nc")
+        print(f"  Consolidating raw MCB data for {region} | {ssp} -> {out_fp}")
+        try:
+            format_5d_mcb_dhw(
+                input_path, 
+                out_fp, 
+                region, 
+                ssp, 
+                hist_timeframe=_hist_tf, 
+                proj_timeframe=_proj_tf
+            )
+        except ValueError as e:
+            print(f"  Warning: Skipping {ssp} for {region}: {e}")
+
+    return "dhw", f"Consolidated 5D MCB DHW datasets for {region} region (one per RCP) with historical prepend ({hist_timeframe}).", "netcdf"
