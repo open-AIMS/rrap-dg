@@ -108,10 +108,12 @@ def format_mcb_dhw_with_prepend(
 
     # 1. Match models between hist and proj
     def get_model(fp):
-        # Specific match for the filenames like:
-        # CoralSea_GBR_ACCESS-CM2_historical_r1i1p1f1_dhw_1951-2014-reefs-MCB-Cairns-albedo-02.nc
-        # Split by '_' and take the 3rd element
-        return os.path.basename(fp).split("_")[2]
+        try:
+            with netCDF4.Dataset(fp, 'r') as ds:
+                return getattr(ds, 'parent_source_id')
+        except Exception:
+            # Fallback to splitting by '_' and taking the 3rd element
+            return os.path.basename(fp).split("_")[2]
 
     hist_models = {get_model(f): f for f in hist_fps}
     proj_models = {get_model(f): f for f in proj_fps}
@@ -374,17 +376,21 @@ def format_5d_mcb_dhw(
     import glob
     import os
     
-    albedo_subdirs = ["Albedo_0.2", "Albedo_0.3"]
     albedo_vals = [0.2, 0.3]
     mcb_durations = [0, 50, 100, 150]
     mcb_vars = ["dhw_max_0", "dhw_max_50", "dhw_max_100", "dhw_max_150"]
     
     # 1. Collect all projection files for the region and specific SSP
     proj_files = []
-    for alb_sub in albedo_subdirs:
-        alb_val = float(alb_sub.split("_")[1])
-        pattern = os.path.join(input_dir, region, alb_sub, "Projections", f"*{ssp}*.nc")
+    for alb_val in albedo_vals:
+        albedo_str = f"{int(round(alb_val * 10)):02d}"
+        pattern = os.path.join(input_dir, f"*{ssp}*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         fps = glob.glob(pattern)
+        if not fps:
+            alb_sub = f"Albedo_{alb_val}"
+            pattern_nested = os.path.join(input_dir, region, alb_sub, "Projections", f"*{ssp}*.nc")
+            fps = glob.glob(pattern_nested)
+            
         for fp in fps:
             with netCDF4.Dataset(fp, 'r') as ds:
                 model = getattr(ds, 'parent_source_id', "unknown")
@@ -396,10 +402,15 @@ def format_5d_mcb_dhw(
 
     # 2. Collect historical files for the same region
     hist_files = []
-    for alb_sub in albedo_subdirs:
-        alb_val = float(alb_sub.split("_")[1])
-        pattern = os.path.join(input_dir, region, alb_sub, "Historical", "*.nc")
+    for alb_val in albedo_vals:
+        albedo_str = f"{int(round(alb_val * 10)):02d}"
+        pattern = os.path.join(input_dir, f"*historical*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         fps = glob.glob(pattern)
+        if not fps:
+            alb_sub = f"Albedo_{alb_val}"
+            pattern_nested = os.path.join(input_dir, region, alb_sub, "Historical", "*.nc")
+            fps = glob.glob(pattern_nested)
+            
         for fp in fps:
             with netCDF4.Dataset(fp, 'r') as ds:
                 model = getattr(ds, 'parent_source_id', "unknown")

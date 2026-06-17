@@ -232,6 +232,15 @@ def cmip6_mcb_dhw_prepend(
     _p_timeframe = _parse_timeframe(proj_timeframe)
     os.makedirs(output_path, exist_ok=True)
 
+    # Format albedo to two digits (e.g. 0.3 -> "03", 0.2 -> "02")
+    if "." in str(albedo):
+        try:
+            albedo_str = f"{int(round(float(albedo) * 10)):02d}"
+        except ValueError:
+            albedo_str = albedo.replace(".", "")
+    else:
+        albedo_str = albedo
+
     alb_sub = f"Albedo_{albedo}"
     mcb_var = f"dhw_max_{mcb_duration}"
     hist_var = "dhw_max_0" # Use clean baseline for history
@@ -243,19 +252,25 @@ def cmip6_mcb_dhw_prepend(
         "ssp585": "RCP85"
     }
 
-    # Find historical files
-    hist_pattern = os.path.join(input_path, region, alb_sub, "Historical", "*.nc")
+    # Find historical files - Try flat directory first, fallback to nested
+    hist_pattern = os.path.join(input_path, f"*historical*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
     hist_fps = glob.glob(hist_pattern)
     if not hist_fps:
-        raise ValueError(f"No historical files found in {hist_pattern}")
+        hist_pattern_nested = os.path.join(input_path, region, alb_sub, "Historical", "*.nc")
+        hist_fps = glob.glob(hist_pattern_nested)
+        if not hist_fps:
+            raise ValueError(f"No historical files found matching flat pattern '{hist_pattern}' or nested pattern '{hist_pattern_nested}'")
 
     for ssp, rcp_label in ssp_map.items():
         out_fp = os.path.join(output_path, f"dhw{rcp_label}.nc")
-        print(f"  Formatting {region} | {alb_sub} | MCB {mcb_duration}d | {ssp} (with prepend) -> {out_fp}")
+        print(f"  Formatting {region} | Albedo {albedo} | MCB {mcb_duration}d | {ssp} (with prepend) -> {out_fp}")
         
-        # Find projection files for this SSP
-        proj_pattern = os.path.join(input_path, region, alb_sub, "Projections", f"*{ssp}*.nc")
+        # Find projection files - Try flat directory first, fallback to nested
+        proj_pattern = os.path.join(input_path, f"*{ssp}*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         proj_fps = glob.glob(proj_pattern)
+        if not proj_fps:
+            proj_pattern_nested = os.path.join(input_path, region, alb_sub, "Projections", f"*{ssp}*.nc")
+            proj_fps = glob.glob(proj_pattern_nested)
         
         if not proj_fps:
             print(f"  Warning: No projection files found for {ssp}")
