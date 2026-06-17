@@ -440,6 +440,8 @@ def format_5d_mcb_dhw(
         location_id_v = nc_out.createVariable("locations", str, ("locations",))
         lat_v = nc_out.createVariable("latitude", "f8", ("locations",))
         lon_v = nc_out.createVariable("longitude", "f8", ("locations",))
+        # Coordinate variable for scenarios dimension
+        scenarios_v = nc_out.createVariable("scenarios", str, ("scenarios",))
         model_v = nc_out.createVariable("model_names", str, ("scenarios",))
         mcb_v = nc_out.createVariable("mcb_durations", "i4", ("mcb_durations",))
         albedo_v = nc_out.createVariable("albedo", "f4", ("albedo",))
@@ -464,6 +466,7 @@ def format_5d_mcb_dhw(
         mcb_v[:] = np.array(mcb_durations)
         albedo_v[:] = np.array(albedo_vals)
         model_v[:] = np.array(models, dtype=object)
+        scenarios_v[:] = np.array(models, dtype=object)
         
         # Load one file to get static reef data
         with netCDF4.Dataset(proj_files[0]['path'], 'r') as ds:
@@ -500,4 +503,3 @@ def format_5d_mcb_dhw(
 
     return None
 
-    return None
