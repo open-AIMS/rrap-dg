@@ -19,6 +19,28 @@ def extract_model_name(filepath: str) -> str:
     # Strip known prefix if present
     return name.replace("CoralSea_GBR_", "")
 
+def _copy_global_attributes(src_ds, dest_ds, title: str):
+    import datetime
+    dest_ds.title = title
+    dest_ds.Conventions = "CF-1.8"
+    dest_ds.history = f"Created on {datetime.datetime.now().isoformat()} using rrap-dg formatting utility"
+    
+    attrs_to_copy = [
+        "institution",
+        "creator_name",
+        "creator_email",
+        "license",
+        "acknowledgement",
+        "reference_period",
+        "observation_institution",
+        "observation_id",
+        "observation_summary"
+    ]
+    src_attrs = src_ds.ncattrs()
+    for attr in attrs_to_copy:
+        if attr in src_attrs:
+            dest_ds.setncattr(attr, src_ds.getncattr(attr))
+
 def validate_location_agreement(dhw_nc_handles: list) -> None:
     """Check that all netcdf files refer to the same locations."""
     unique_ids = dhw_nc_handles[0].variables['UNIQUE_ID'][:]
@@ -159,6 +181,7 @@ def format_mcb_dhw_with_prepend(
             location_id_v[:] = ids
             lat_v[:] = ds.variables['lat_reef'][:]
             lon_v[:] = ds.variables['lon_reef'][:]
+            _copy_global_attributes(ds, nc_out, "Consolidated 3D MCB DHW dataset with historical prepend")
 
         # Fill Data
         for m_idx, model in enumerate(common_models):
@@ -249,6 +272,7 @@ def format_single_rcp_dhw(
         models_array = np.array([extract_model_name(fp) for fp in dhw_nc_fps], dtype=object)
         model_name_ID[:] = models_array
         scenarios_ID[:] = models_array
+        _copy_global_attributes(nc_handles[0], nc_out, "Standard downscaled 3D DHW projections")
 
         for (idx, nc_handle) in enumerate(nc_handles):
             dhw_ID[idx, :, :] = nc_handle.variables[variable_name][:, start_yr_idx:end_yr_idx + 1]
@@ -399,6 +423,7 @@ def format_5d_mcb_dhw(
         pattern = os.path.join(input_dir, f"*{ssp}*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         fps = glob.glob(pattern)
         if not fps:
+            # TODO: Remove support for non-flat (nested) directory structure
             alb_sub = f"Albedo_{alb_val}"
             pattern_nested = os.path.join(input_dir, region, alb_sub, "Projections", f"*{ssp}*.nc")
             fps = glob.glob(pattern_nested)
@@ -419,6 +444,7 @@ def format_5d_mcb_dhw(
         pattern = os.path.join(input_dir, f"*historical*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         fps = glob.glob(pattern)
         if not fps:
+            # TODO: Remove support for non-flat (nested) directory structure
             alb_sub = f"Albedo_{alb_val}"
             pattern_nested = os.path.join(input_dir, region, alb_sub, "Historical", "*.nc")
             fps = glob.glob(pattern_nested)
@@ -498,6 +524,7 @@ def format_5d_mcb_dhw(
             location_id_v[:] = ids
             lat_v[:] = ds.variables['lat_reef'][:]
             lon_v[:] = ds.variables['lon_reef'][:]
+            _copy_global_attributes(ds, nc_out, f"Consolidated 5D MCB DHW dataset for {region} ({ssp})")
 
         # Helper to find file path
         def find_fp(file_list, model, albedo):

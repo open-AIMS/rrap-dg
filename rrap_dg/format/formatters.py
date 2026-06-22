@@ -253,6 +253,7 @@ def cmip6_mcb_dhw_prepend(
     }
 
     # Find historical files - Try flat directory first, fallback to nested
+    # TODO: Remove support for non-flat (nested) directory structure
     hist_pattern = os.path.join(input_path, f"*historical*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
     hist_fps = glob.glob(hist_pattern)
     if not hist_fps:
@@ -266,6 +267,7 @@ def cmip6_mcb_dhw_prepend(
         print(f"  Formatting {region} | Albedo {albedo} | MCB {mcb_duration}d | {ssp} (with prepend) -> {out_fp}")
         
         # Find projection files - Try flat directory first, fallback to nested
+        # TODO: Remove support for non-flat (nested) directory structure
         proj_pattern = os.path.join(input_path, f"*{ssp}*_dhw_*MCB-{region}-albedo-{albedo_str}.nc")
         proj_fps = glob.glob(proj_pattern)
         if not proj_fps:
