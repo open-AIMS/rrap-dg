@@ -135,6 +135,8 @@ def format_mcb_dhw_with_prepend(
         lon_v = nc_out.createVariable("longitude", "f8", ("locations",))
         lat_v = nc_out.createVariable("latitude", "f8", ("locations",))
         time_v = nc_out.createVariable("timesteps", "i4", ("timesteps",))
+        # Coordinate variable for scenarios dimension mirroring the dimension name
+        scenarios_v = nc_out.createVariable("scenarios", str, ("scenarios",))
         model_v = nc_out.createVariable("model_names", str, ("scenarios",))
         unique_id_v = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         location_id_v = nc_out.createVariable("locations", str, ("locations",))
@@ -146,7 +148,9 @@ def format_mcb_dhw_with_prepend(
         )
 
         time_v[:] = np.arange(hist_timeframe[0], proj_timeframe[1] + 1)
-        model_v[:] = np.array(common_models, dtype=object)
+        models_array = np.array(common_models, dtype=object)
+        model_v[:] = models_array
+        scenarios_v[:] = models_array
 
         # Get metadata from first projection file
         with netCDF4.Dataset(proj_models[common_models[0]], 'r') as ds:
@@ -202,6 +206,8 @@ def format_single_rcp_dhw(
         GBRMPA_ID = nc_out.createVariable("GBRMPA_ID", str, ("locations",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
         location_ID = nc_out.createVariable("locations", str, ("locations",))
+        # Coordinate variable for scenarios dimension mirroring the dimension name
+        scenarios_ID = nc_out.createVariable("scenarios", str, ("scenarios",))
         model_name_ID = nc_out.createVariable("model_names", str, ("scenarios",))
         dhw_ID = nc_out.createVariable(
             "dhw", "f8", ("scenarios", "locations", "timesteps"), fill_value=1.0e35
@@ -240,7 +246,9 @@ def format_single_rcp_dhw(
         GBRMPA_ID[:] = nc_handles[0].variables['LABEL_ID'][:]
         unique_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
         location_ID[:] = np.array(nc_handles[0].variables['UNIQUE_ID'][:]).astype("int").astype("str")
-        model_name_ID[:] = np.array([extract_model_name(fp) for fp in dhw_nc_fps], dtype=object)
+        models_array = np.array([extract_model_name(fp) for fp in dhw_nc_fps], dtype=object)
+        model_name_ID[:] = models_array
+        scenarios_ID[:] = models_array
 
         for (idx, nc_handle) in enumerate(nc_handles):
             dhw_ID[idx, :, :] = nc_handle.variables[variable_name][:, start_yr_idx:end_yr_idx + 1]
@@ -332,6 +340,8 @@ def format_csv_dhw_model_group(
 
         time_ID = nc_out.createVariable("timesteps", "i4", ("timesteps",))
         unique_ID = nc_out.createVariable("UNIQUE_ID", str, ("locations",))
+        # Coordinate variable for scenarios dimension mirroring the dimension name
+        scenarios_ID = nc_out.createVariable("scenarios", str, ("scenarios",))
         model_name_ID = nc_out.createVariable("model_names", str, ("scenarios",))
         location_ID = nc_out.createVariable("locations", str, ("locations",))
 
@@ -353,7 +363,9 @@ def format_csv_dhw_model_group(
         time_ID[:] = list(range(start_year, end_year + 1))
         unique_ID[:] = np.array(unique_ids).astype(str)
         location_ID[:] = np.array(unique_ids).astype(str)
-        model_name_ID[:] = np.array([extract_model_name(fp) for fp in csv_files], dtype=object)
+        models_array = np.array([extract_model_name(fp) for fp in csv_files], dtype=object)
+        model_name_ID[:] = models_array
+        scenarios_ID[:] = models_array
 
         dhw_ID[:] = dhw_data
 
