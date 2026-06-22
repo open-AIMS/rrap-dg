@@ -4,7 +4,7 @@ The `dhw` module is responsible for generating projected Degree Heating Week (DH
 
 ## Commands
 
-### `generate`
+### Command: generate
 
 Produces Degree Heating Week projections for a given cluster.
 

@@ -4,7 +4,7 @@ The `template` module assists in creating and building standardized ADRIA Domain
 
 ## Commands
 
-### `generate`
+### Command: generate
 
 Scaffolds an empty ADRIA Domain directory structure.
 
@@ -14,7 +14,7 @@ Scaffolds an empty ADRIA Domain directory structure.
 uv run rrap_dg template generate TEMPLATE_PATH
 ```
 
-### `build`
+### Command: build
 
 Builds an ADRIA Domain by fetching datasets from handles or local paths into the standardized structure.
 Sources and file lists are configured via a TOML config file.

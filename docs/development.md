@@ -50,3 +50,11 @@ The system is designed to be "schema-aware" and can extract information from two
 
 - **Standard Datapackage:** Reads `sources` and `contributors` directly from an existing `datapackage.json`.
 - **Provana/RRAP Metadata:** Reads fields from `dataset_info` (name, description, publisher_id) and `associations` (point_of_contact).
+
+## 4. NetCDF Coding Standards & Conventions
+
+To ensure output NetCDF files are fully compatible with downstream modeling frameworks (like ADRIA) and analysis libraries (like xarray):
+
+- **Coordinate Variable Rule:** Any multi-dimensional NetCDF variables representing scenarios, locations, or timesteps **must** have corresponding coordinate variables named identically to the dimension. These coordinate variables must contain the descriptive metadata indices (e.g., GCM names for `scenarios`, unique location IDs for `locations`).
+- **Backward Compatibility:** When adding coordinate variables, preserve the legacy metadata variables (e.g., `model_names` alongside `scenarios`) so that legacy code does not fail.
+

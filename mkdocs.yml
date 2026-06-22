@@ -1,4 +1,5 @@
 site_name: RRAP Data Generator
+use_directory_urls: false
 theme:
   name: material
   palette:
@@ -51,6 +52,9 @@ markdown_extensions:
       generic: true
   - pymdownx.tabbed:
       alternate_style: true
+
+extra_css:
+  - stylesheets/extra.css
 
 extra_javascript:
   - javascripts/mathjax.js
