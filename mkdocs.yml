@@ -27,6 +27,8 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - CLI Usage: cli-usage.md
+  - Clusters: modules/clusters.md
+  - Data Packages: modules/data-packages.md
   - Modules:
       - DHW: modules/dhw.md
       - Cyclones: modules/cyclones.md
@@ -35,7 +37,6 @@ nav:
       - Data Store: modules/data-store.md
       - Template: modules/template.md
       - Format: modules/format.md
-      - Data Packages: modules/data-packages.md
   - Development:
       - Metadata: development.md
 
