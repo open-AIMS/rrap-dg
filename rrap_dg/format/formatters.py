@@ -55,6 +55,11 @@ def rme_connectivity(
     """
     Reformats all connectivity data found in the input path and saves to the output directory.
     Returns (resource_name, description, format).
+
+    Dataset Compatibility:
+    ----------------------
+    RME v1.0.46
+    [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
     """
     connectivity_files = glob.glob(pj(input_path, connectivity_pattern), recursive=True)
     if not connectivity_files:
@@ -91,6 +96,10 @@ def cmip6_downscaled_dhw(
     """
     Formats standard NetCDF DHW files.
     Returns (resource_name, description, format).
+
+    Dataset Compatibility:
+    ----------------------
+    [Climate projections (CMIP6) - statistical downscaling](https://hdl.handle.net/102.100.100/705397)
     """
     _timeframe = _parse_timeframe(timeframe)
     rcp_list = rcps.split()
@@ -140,6 +149,11 @@ def rme_dhw(
     """
     Formats RME DHW CSVs to NetCDF.
     Returns (resource_name, description, format).
+
+    Dataset Compatibility:
+    ----------------------
+    RME v1.0.46
+    [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
     """
     _timeframe = _parse_timeframe(timeframe)
     rcp_list = rcps.split()
@@ -199,6 +213,11 @@ def rme_icc(
     """
     Formats Initial Coral Cover (ICC) using Julia.
     Returns (resource_name, description, format).
+
+    Dataset Compatibility:
+    ----------------------
+    RME v1.0.46
+    [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
     """
     rme_root_path = _find_rme_root(input_path)
 
@@ -227,6 +246,10 @@ def cmip6_mcb_dhw_prepend(
     """
     Consolidates MCB DHW files by prepending historical baseline (2007-2014) 
     to projections (2015-2100).
+
+    Dataset Compatibility:
+    ----------------------
+    [Climate projections (CMIP6) - statistical downscaling](https://hdl.handle.net/102.100.100/705397)
     """
     _h_timeframe = _parse_timeframe(hist_timeframe)
     _p_timeframe = _parse_timeframe(proj_timeframe)
@@ -301,6 +324,10 @@ def cmip6_consolidated_mcb_dhw(
     """
     Consolidates raw MCB NetCDF files into 5D NetCDF files (one per SSP/RCP).
     Returns (resource_name, description, format).
+
+    Dataset Compatibility:
+    ----------------------
+    [Climate projections (CMIP6) - statistical downscaling - with Marine Cloud Brightening](https://hdl.handle.net/102.100.100/705580)
     """
     _hist_tf = _parse_timeframe(hist_timeframe)
     _proj_tf = _parse_timeframe(proj_timeframe)

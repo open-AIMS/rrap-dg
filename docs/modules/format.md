@@ -8,6 +8,12 @@ The `format` module provides specialized tools to reformat ReefMod Engine (RME) 
 
 Aligns RME connectivity matrices with canonical UNIQUE IDs.
 
+**Dataset Compatibility:**
+
+- RME v1.0.46
+- [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
+
+**Usage**
 ```bash
 uv run rrap_dg format rme-connectivity [OPTIONS]
 ```
@@ -16,6 +22,11 @@ uv run rrap_dg format rme-connectivity [OPTIONS]
 
 Standardizes CMIP6 statistically downscaled NetCDF DHW files.
 
+**Dataset Compatibility:**
+
+- [Climate projections (CMIP6) - statistical downscaling](https://hdl.handle.net/102.100.100/705397)
+
+**Usage**
 ```bash
 uv run rrap_dg format cmip6-downscaled-dhw [OPTIONS]
 ```
@@ -24,6 +35,12 @@ uv run rrap_dg format cmip6-downscaled-dhw [OPTIONS]
 
 Converts RME DHW CSVs to standardized NetCDF files.
 
+**Dataset Compatibility:**
+
+- RME v1.0.46
+- [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
+
+**Usage**
 ```bash
 uv run rrap_dg format rme-dhw [OPTIONS]
 ```
@@ -32,6 +49,12 @@ uv run rrap_dg format rme-dhw [OPTIONS]
 
 Processes RME Initial Coral Cover (ICC) into NetCDF using spatial averaging.
 
+**Dataset Compatibility:**
+
+- RME v1.0.46
+- [RME v1.0.43](https://hdl.handle.net/102.100.100/711071)
+
+**Usage**
 ```bash
 uv run rrap_dg format rme-icc [OPTIONS]
 ```
@@ -40,6 +63,11 @@ uv run rrap_dg format rme-icc [OPTIONS]
 
 Consolidates raw Marine Cloud Brightening (MCB) NetCDF files into a single multi-dimensional 5D NetCDF (one file per SSP/RCP) with historical prepend.
 
+**Dataset Compatibility:**
+
+- [Climate projections (CMIP6) - statistical downscaling - with Marine Cloud Brightening](https://hdl.handle.net/102.100.100/705580)
+
+**Usage**
 ```bash
 uv run rrap_dg format cmip6-consolidated-mcb [OPTIONS]
 ```
@@ -56,6 +84,12 @@ uv run rrap_dg format cmip6-consolidated-mcb [OPTIONS]
 
 Consolidates raw MCB NetCDFs into 3D NetCDFs with historical data prepended for a specific albedo and duration.
 
+**Dataset Compatibility:**
+
+- [Climate projections (CMIP6) - statistical downscaling](https://hdl.handle.net/102.100.100/705397)
+- [Climate projections (CMIP6) - statistical downscaling - with Marine Cloud Brightening](https://hdl.handle.net/102.100.100/705580)
+
+**Usage**
 ```bash
 uv run rrap_dg format cmip6-mcb-prepend [OPTIONS]
 ```
