@@ -6,21 +6,26 @@ This guide provides a step-by-step walkthrough of building a clustered ADRIA-com
 
 ## Workflow Overview
 
-The domain generation process consists of five main phases:
+The domain generation process consists of three main stages:
 
 ```mermaid
 graph TD
-    A[1. Setup & Calibration] --> B[2. Downscale ICC]
-    B --> C[3. Generate DHW Projections]
-    C --> D[4. Generate Cyclone Mortality]
-    D --> E[5. Compile Domain Package]
+    A["1. (Optional Geopackage Creation) & Calibration Group Insertion"]
+    
+    A --> B["2a. Downscale ICC"]
+    A --> C["2b. Generate DHW Projections"]
+    A --> D["2c. Generate Cyclone Mortality"]
+    
+    B --> E["3. Compile Domain Package"]
+    C --> E
+    D --> E
 ```
 
 ---
 
-## Step 1: Spatial Domain & Calibration Setup
+## Step 1: (Optional Geopackage Creation) & Calibration Group Insertion
 
-First, define the clustered spatial boundary and map calibration groups (`CB_CALIB_GROUPS`) and carrying capacities (`k` values) from a canonical geopackage.
+Define the clustered spatial boundary (see the [Available Clusters & Geopackages](modules/cluster-resources.md#available-clusters-geopackages) section in the [Cluster Resources](modules/cluster-resources.md) guide) and map calibration groups (`CB_CALIB_GROUPS`) and carrying capacities (`k` values) from a canonical geopackage.
 
 1. **(Optional) Run Clustering:**
    If you do not have a pre-clustered geopackage, cluster the canonical geopackage locations using k-means:
@@ -37,7 +42,7 @@ First, define the clustered spatial boundary and map calibration groups (`CB_CAL
 
 ---
 
-## Step 2: Downscale Initial Coral Cover (ICC)
+## Step 2a: Downscale Initial Coral Cover (ICC)
 
 Downscale the Initial Coral Cover data from the source data package to match your target cluster's locations and carrying capacity ($k$):
 
@@ -47,9 +52,9 @@ uv run rrapdg coral-cover downscale-icc <SOURCE_DPKG_PATH> <CLUSTER_GPKG_PATH> <
 
 ---
 
-## Step 3: Generate Cluster-Specific DHW Projections
+## Step 2b: Generate Cluster-Specific DHW Projections
 
-Generate stochastic Degree Heating Week projections for the specific cluster name, utilizing satellite NOAA baselines, MIROC5 CMIP6 trends, and local RECOM heatwave spatial patterns.
+Generate stochastic Degree Heating Week projections for the specific cluster name, utilizing satellite NOAA baselines, MIROC5 CMIP6 trends, and local RECOM heatwave spatial patterns (see the [Available RECOM Datasets](modules/cluster-resources.md#available-recom-datasets) section in the [Cluster Resources](modules/cluster-resources.md) guide).
 
 ```bash
 uv run rrapdg dhw generate \
@@ -62,7 +67,7 @@ uv run rrapdg dhw generate \
 
 ---
 
-## Step 4: Generate Cyclone Mortality
+## Step 2c: Generate Cyclone Mortality
 
 Generate a cluster-specific cyclone mortality NetCDF datacube using the RME cyclone scenarios and target cluster spatial geometries:
 
@@ -74,9 +79,9 @@ uv run rrapdg cyclones generate \
 
 ---
 
-## Step 5: Compile and Finalize the Domain Package
+## Step 3: Compile and Finalize the Domain Package
 
-Assemble the processed and generated components into the final ADRIA domain package structure, writing the standard `datapackage.json` metadata containing full dataset provenance.
+Assemble the processed and generated components into the final ADRIA domain package structure (matching the standard [Standard Data Package Layout](modules/cluster-resources.md#standard-data-package-layout)), writing the standard `datapackage.json` metadata containing full dataset provenance.
 
 *Note: The connectivity files must be provided directly by the user and must already be aligned with the canonical geopackage.*
 

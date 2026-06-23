@@ -28,8 +28,7 @@ nav:
   - Getting Started: getting-started.md
   - CLI Usage: cli-usage.md
   - Domain Build Guide: domain-workflow.md
-  - Clusters: modules/clusters.md
-  - Data Packages: modules/data-packages.md
+  - Cluster Resources: modules/cluster-resources.md
   - Modules:
       - DHW: modules/dhw.md
       - Cyclones: modules/cyclones.md
@@ -49,7 +48,11 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.tabbed:
