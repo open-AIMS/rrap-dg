@@ -10,7 +10,7 @@ The domain generation process consists of five main phases:
 
 ```mermaid
 graph TD
-    A[1. Setup & Calibration] --> B[2. Format RME Inputs]
+    A[1. Setup & Calibration] --> B[2. Downscale ICC]
     B --> C[3. Generate DHW Projections]
     C --> D[4. Generate Cyclone Mortality]
     D --> E[5. Compile Domain Package]
@@ -37,24 +37,13 @@ First, define the clustered spatial boundary and map calibration groups (`CB_CAL
 
 ---
 
-## Step 2: Format RME Input Data
+## Step 2: Downscale Initial Coral Cover (ICC)
 
-Format and align the raw ReefMod Engine (RME) input datasets with the canonical `UNIQUE_ID`s.
+Downscale the Initial Coral Cover data from the source data package to match your target cluster's locations and carrying capacity ($k$):
 
-1. **Reformat Connectivity CSVs:**
-   ```bash
-   uv run rrapdg format rme-connectivity \
-     --input-path <RME_ROOT_DIR> \
-     --canonical-path <CANONICAL_GPKG_PATH> \
-     --output-path <FORMATTED_DIR>/connectivity
-   ```
-2. **Reformat Initial Coral Cover (ICC):**
-   ```bash
-   uv run rrapdg format rme-icc \
-     --input-path <RME_ROOT_DIR> \
-     --canonical-path <CANONICAL_GPKG_PATH> \
-     --output-path <FORMATTED_DIR>/coral_cover.nc
-   ```
+```bash
+uv run rrapdg coral-cover downscale-icc <SOURCE_DPKG_PATH> <CLUSTER_GPKG_PATH> <FORMATTED_DIR>/coral_cover.nc
+```
 
 ---
 
@@ -87,7 +76,9 @@ uv run rrapdg cyclones generate \
 
 ## Step 5: Compile and Finalize the Domain Package
 
-Assemble the processed and generated components into the final ADRIA domain package structure, writing the standard `datapackage.json` metadata containing full dataset provenance:
+Assemble the processed and generated components into the final ADRIA domain package structure, writing the standard `datapackage.json` metadata containing full dataset provenance.
+
+*Note: The connectivity files must be provided directly by the user and must already be aligned with the canonical geopackage.*
 
 ```bash
 uv run rrapdg template build \
@@ -95,7 +86,7 @@ uv run rrapdg template build \
   --domain-name <CLUSTER_NAME> \
   --spatial-source <CLUSTER_GPKG_PATH> \
   --dhw-source <FORMATTED_DIR>/DHWs \
-  --connectivity-source <FORMATTED_DIR>/connectivity \
+  --connectivity-source <PATH_TO_USER_CONNECTIVITY_DIR> \
   --icc-source <FORMATTED_DIR>/coral_cover.nc \
   --cyclones-source <FORMATTED_DIR>/cyclones
 ```
