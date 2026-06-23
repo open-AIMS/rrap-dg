@@ -27,6 +27,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - CLI Usage: cli-usage.md
+  - Domain Build Guide: domain-workflow.md
   - Clusters: modules/clusters.md
   - Data Packages: modules/data-packages.md
   - Modules:
