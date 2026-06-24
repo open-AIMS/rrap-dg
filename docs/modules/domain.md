@@ -19,21 +19,23 @@ uv run rrapdg domain cluster GPKG_PATH OUTPUT_PATH
 - `GPKG_PATH`: Path to the input geopackage file.
 - `OUTPUT_PATH`: Path to save the clustered geopackage.
 
-### Command: update-cb-calib-groups
+### Command: prepare
 
-Maps calibration groups (`CB_CALIB_GROUPS`) and carrying capacities (`k` values) from a canonical geopackage to a clustered geopackage.
+Preprocesses the cluster geopackage by enforcing geographic coordinates (EPSG:4326), normalizing site ID column variations (such as `site_id` to `reef_siteid`), and mapping calibration groups (`CB_CALIB_GROUPS`) and carrying capacities (`k` values) from a canonical geopackage.
 
 **Usage:**
 
 ```bash
-uv run rrapdg domain update-cb-calib-groups [OPTIONS]
+uv run rrapdg domain prepare [OPTIONS]
 ```
 
 **Options:**
 
 - `--cluster-gpkg TEXT`: Path to the clustered geopackage. [Required]
 - `--canonical-gpkg TEXT`: Path to the canonical geopackage. [Required]
-- `--output-path TEXT`: Path to save the updated clustered geopackage. If not provided, it will overwrite the input clustered geopackage.
+- `--output-path TEXT`: Path to save the prepared geopackage. If not provided, it will overwrite the input cluster geopackage.
+
+*Note: The deprecated command `update-cb-calib-groups` remains available as an alias for backward compatibility.*
 
 ## Implementation Details
 

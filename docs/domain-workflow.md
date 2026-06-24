@@ -32,10 +32,10 @@ Define the clustered spatial boundary (see the [Available Clusters & Geopackages
    ```bash
    uv run rrapdg domain cluster <CANONICAL_GPKG_PATH> <CLUSTER_GPKG_PATH>
    ```
-2. **Apply Calibration Mapping Fallbacks:**
-   Map carrying capacity and calibration groups onto the cluster geopackage:
+2. **Prepare the Geopackage:**
+   Align the geopackage projection (forcing EPSG:4326), normalize site ID column variations, and map carrying capacities and calibration groups onto the cluster geopackage:
    ```bash
-   uv run rrapdg domain update-cb-calib-groups \
+   uv run rrapdg domain prepare \
      --cluster-gpkg <CLUSTER_GPKG_PATH> \
      --canonical-gpkg <CANONICAL_GPKG_PATH>
    ```

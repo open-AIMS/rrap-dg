@@ -23,7 +23,7 @@ function generate(
     rrap_gdf::DataFrame = _rrap_gdf(rrapdg_dpkg_path, cluster_name)
 
     # Get YAXArray of cyclone scenarios (in windspeeds) for each reef (from RRAP)
-    scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path)
+    scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path, rrapdg_dpkg_path)
 
     # Fill scens with mortality rate for each coral group
     massives = contains.(scens.species, "massives")

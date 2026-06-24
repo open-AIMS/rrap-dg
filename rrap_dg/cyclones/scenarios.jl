@@ -4,9 +4,9 @@ species and location there are 100 cyclone category projections for 100 timestep
 categories goes from 1 to 6, where 1 is no cyclone and 2 to 6 correspond to BOM's categories
 1 to 5.
 """
-function cyclone_scenarios(rrap_gdf::DataFrame, rme_dpkg_path::String)::YAXArray
+function cyclone_scenarios(rrap_gdf::DataFrame, rme_dpkg_path::String, rrapdg_dpkg_path::String)::YAXArray
     # Filter rrap_gdf reef locations by rme_gdf reefs
-    rme_gdf::DataFrame = _rme_gdf(rme_dpkg_path)
+    rme_gdf::DataFrame = _rme_gdf(rme_dpkg_path, rrapdg_dpkg_path)
     match_ids = _match_gdf_ids(rme_gdf, rrap_gdf)
     reef_filters::YAXArray = _reef_filters(rme_gdf, rrap_gdf, match_ids)
 
@@ -66,8 +66,17 @@ function cyclone_scenarios(rrap_gdf::DataFrame, rme_dpkg_path::String)::YAXArray
     return scenarios
 end
 
-function _rme_gdf(rme_dpkg_path::String)::DataFrame
-    return GDF.read(joinpath(rme_dpkg_path, "data_files", "region", "reefmod_gbr.gpkg"))
+function _rme_gdf(rme_dpkg_path::String, rrapdg_dpkg_path::String)::DataFrame
+    # Try RME path first
+    gpkg_path = joinpath(rme_dpkg_path, "data_files", "region", "reefmod_gbr.gpkg")
+    if !isfile(gpkg_path)
+        # Fallback to rrapdg spatial folder
+        gpkg_path = joinpath(rrapdg_dpkg_path, "spatial", "reefmod_gbr.gpkg")
+    end
+    if !isfile(gpkg_path)
+         error("Unable to locate reefmod_gbr.gpkg in $(rme_dpkg_path) or $(rrapdg_dpkg_path)")
+    end
+    return GDF.read(gpkg_path)
 end
 
 """
@@ -99,7 +108,8 @@ function _reef_filters(rme_gdf::DataFrame, target_gdf::DataFrame, match_ids::Vec
         rme_name in rme_names
     ]
 
-    rme_label_ids = rme_gdf[match_ids, :].GBRMPA_ID
+    rme_label_col = :GBRMPA_ID in propertynames(rme_gdf) ? :GBRMPA_ID : :LABEL_ID
+    rme_label_ids = rme_gdf[match_ids, rme_label_col]
     axlist = (Dim{:labels}(rme_label_ids), Dim{:filters}(1:length(rrap_names)))
     return YAXArray(axlist, hcat(sites_by_reef...)')
 end
