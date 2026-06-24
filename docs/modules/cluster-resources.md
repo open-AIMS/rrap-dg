@@ -1,6 +1,6 @@
 # Cluster Resources
 
-This page documents the standard data package structures, available spatial cluster geopackages, and the corresponding RECOM (Regional Ecological Oceanography Model) marine heatwave datasets.
+This page documents the standard data package structures, available spatial cluster geopackages, corresponding RECOM (Regional Ecological Oceanography Model) marine heatwave datasets, and larval connectivity matrices.
 
 ---
 
@@ -68,3 +68,15 @@ Each cluster requires corresponding RECOM files containing spatial marine heatwa
 
 !!! note
     During DHW generation, the generator automatically globs the RECOM directory using the pattern `*{cluster_name}*_*_dhw*.nc` to find the marine heatwave spatial maps.
+
+---
+
+## Available Connectivity Datasets
+
+Larval connectivity matrices define the spatial dispersal patterns of coral larvae between reefs. The following table lists the connectivity datasets available on the RRAP M&DS data store:
+
+| Cluster Name | IS Store Handle ID |
+| :--- | :--- |
+| `Moore` | [`102.100.100/486394`](https://hdl.handle.net/102.100.100/486394) |
+| `Davies` | [`102.100.100/486395`](https://hdl.handle.net/102.100.100/486395) |
+| `Lizard` | [`102.100.100/486396`](https://hdl.handle.net/102.100.100/486396) |
