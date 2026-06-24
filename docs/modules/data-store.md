@@ -11,7 +11,7 @@ Download all files from a dataset in the RRAP M&DS data store using a handle ID.
 **Usage:**
 
 ```bash
-uv run rrap_dg data-store download HANDLE_ID DEST
+uv run rrapdg data-store download HANDLE_ID DEST
 ```
 
 ### `download-w-cache`
@@ -21,7 +21,7 @@ Download all files from a dataset and save them to a local cache directory. If t
 **Usage:**
 
 ```bash
-uv run rrap_dg data-store download-w-cache [OPTIONS] HANDLE_ID
+uv run rrapdg data-store download-w-cache [OPTIONS] HANDLE_ID
 ```
 
 **Options:**
@@ -35,7 +35,7 @@ Download a specific file or folder from a dataset.
 **Usage:**
 
 ```bash
-uv run rrap_dg data-store download-file HANDLE_ID S3_PATH DEST
+uv run rrapdg data-store download-file HANDLE_ID S3_PATH DEST
 ```
 
 **Arguments:**
@@ -51,7 +51,7 @@ List all files in a dataset.
 **Usage:**
 
 ```bash
-uv run rrap_dg data-store list-files HANDLE_ID
+uv run rrapdg data-store list-files HANDLE_ID
 ```
 
 ## Configuration

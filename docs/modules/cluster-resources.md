@@ -66,5 +66,5 @@ Each cluster requires corresponding RECOM files containing spatial marine heatwa
 | `Lizard` | [`102.100.100/485092`](https://hdl.handle.net/102.100.100/485092) | `*Lizard*_*_dhw*.nc` |
 | `Heron` | [`102.100.100/484974`](https://hdl.handle.net/102.100.100/484974) | `*Heron*_*_dhw*.nc` |
 
-> [!NOTE]
-> During DHW generation, the generator automatically globs the RECOM directory using the pattern `*{cluster_name}*_*_dhw*.nc` to find the marine heatwave spatial maps.
+!!! note
+    During DHW generation, the generator automatically globs the RECOM directory using the pattern `*{cluster_name}*_*_dhw*.nc` to find the marine heatwave spatial maps.

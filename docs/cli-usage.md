@@ -7,13 +7,13 @@ The RRAP Data Generator provides a unified CLI entry point.
 All commands follow this pattern:
 
 ```bash
-uv run rrap_dg [MODULE] [COMMAND] [OPTIONS]
+uv run rrapdg [MODULE] [COMMAND] [OPTIONS]
 ```
 
 To see the available modules:
 
 ```bash
-uv run rrap_dg --help
+uv run rrapdg --help
 ```
 
 ## Available Modules
@@ -31,5 +31,5 @@ uv run rrap_dg --help
 For detailed information on a specific module, use:
 
 ```bash
-uv run rrap_dg [MODULE] --help
+uv run rrapdg [MODULE] --help
 ```

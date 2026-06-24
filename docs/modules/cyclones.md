@@ -11,7 +11,7 @@ Generates a cyclone mortality datacube.
 **Usage:**
 
 ```bash
-uv run rrap_dg cyclones generate RRAPDG_DATAPACKAGE_PATH RME_DATAPACKAGE_PATH OUTPUT_PATH
+uv run rrapdg cyclones generate RRAPDG_DATAPACKAGE_PATH RME_DATAPACKAGE_PATH OUTPUT_PATH
 ```
 
 **Arguments:**

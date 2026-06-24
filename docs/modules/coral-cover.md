@@ -11,7 +11,7 @@ Creates a new netCDF with initial coral cover values downscaled to a specific cl
 **Usage:**
 
 ```bash
-uv run rrap_dg coral-cover downscale-icc RRAPDG_DPKG_PATH TARGET_CLUSTER OUTPUT_PATH
+uv run rrapdg coral-cover downscale-icc RRAPDG_DPKG_PATH TARGET_CLUSTER OUTPUT_PATH
 ```
 
 **Arguments:**
@@ -27,7 +27,7 @@ Creates a set of netCDF files in an output directory based on bin edges defined 
 **Usage:**
 
 ```bash
-uv run rrap_dg coral-cover bin-edge-icc RRAPDG_DPKG_PATH TARGET_GPKG OUTPUT_DIR TOML_FILE
+uv run rrapdg coral-cover bin-edge-icc RRAPDG_DPKG_PATH TARGET_GPKG OUTPUT_DIR TOML_FILE
 ```
 
 **Arguments:**

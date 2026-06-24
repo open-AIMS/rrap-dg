@@ -11,7 +11,7 @@ Creates a new geopackage file with clustered locations using k-means optimizatio
 **Usage:**
 
 ```bash
-uv run rrap_dg domain cluster GPKG_PATH OUTPUT_PATH
+uv run rrapdg domain cluster GPKG_PATH OUTPUT_PATH
 ```
 
 **Arguments:**
@@ -26,7 +26,7 @@ Maps calibration groups (`CB_CALIB_GROUPS`) and carrying capacities (`k` values)
 **Usage:**
 
 ```bash
-uv run rrap_dg domain update-cb-calib-groups [OPTIONS]
+uv run rrapdg domain update-cb-calib-groups [OPTIONS]
 ```
 
 **Options:**

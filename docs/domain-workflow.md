@@ -79,21 +79,51 @@ uv run rrapdg cyclones generate \
 
 ---
 
+!!! tip "Provenance Best Practice"
+    Before compiling the final domain package, it is highly recommended to upload your newly generated and formatted datasets (e.g., DHWs, cyclones, initial coral cover) to the **RRAP M&DS Data Store**.
+
+    When building the domain, specify the **Data Store Handle IDs** as the `source` values in your `config.toml`. The packaging tool will automatically query and download the rich metadata from the Data Store, populating the final `datapackage.json` with accurate provenance and lineage tracking instead of raw local paths.
+
 ## Step 3: Compile and Finalize the Domain Package
 
 Assemble the processed and generated components into the final ADRIA domain package structure (matching the standard [Standard Data Package Layout](modules/cluster-resources.md#standard-data-package-layout)), writing the standard `datapackage.json` metadata containing full dataset provenance.
 
-*Note: The connectivity files must be provided directly by the user and must already be aligned with the canonical geopackage.*
+The domain is compiled using a TOML configuration file defining the sources for all required data layers.
 
-```bash
-uv run rrapdg template build \
-  --domain-path <FINAL_DOMAIN_PACKAGE_DIR> \
-  --domain-name <CLUSTER_NAME> \
-  --spatial-source <CLUSTER_GPKG_PATH> \
-  --dhw-source <FORMATTED_DIR>/DHWs \
-  --connectivity-source <PATH_TO_USER_CONNECTIVITY_DIR> \
-  --icc-source <FORMATTED_DIR>/coral_cover.nc \
-  --cyclones-source <FORMATTED_DIR>/cyclones
+### 1. Create a `config.toml` File
+Create a configuration file mapping out your local filepaths or RRAP M&DS Data Store handle IDs:
+
+```toml
+domain_name = "Cairns_Test"
+
+[spatial]
+source = "/path/to/spatial/Cairns.gpkg"
+
+[dhw]
+source = "/path/to/formatted/DHWs"
+
+[connectivity]
+source = "/path/to/user/connectivity"  # Must align with the canonical geopackage
+
+[icc]
+source = "/path/to/formatted/coral_cover.nc"
+
+[cyclones]
+source = "/path/to/formatted/cyclones"
 ```
 
-The output package directory `<FINAL_DOMAIN_PACKAGE_DIR>` is now ready to be loaded directly into modelling frameworks like ADRIA.
+### 2. Run the Build Command
+Pass the configuration file path and the base output directory to the template builder:
+
+```bash
+uv run rrapdg template build <CONFIG_PATH> <OUTPUT_PATH>
+```
+
+---
+
+## Guide Notes
+
+### Parameter Meanings:
+* **`domain_name` (in config):** The target name for your domain. The builder will automatically append the date and version tag (e.g., `Cairns_Test_2026-06-24_v080`) to form the final directory name and rename the internal geopackage to match it.
+* **`<OUTPUT_PATH>`:** The parent directory where the final domain package directory will be created. The domain will be generated at `<OUTPUT_PATH>/<domain_name>_<date>_v<version>/`.
+* **`source` parameters:** Each `source` field in the TOML configuration can be set to either a **local directory/filepath** or an **M&DS Data Store Handle ID** (e.g., `102.100.100/XXXXXX`).

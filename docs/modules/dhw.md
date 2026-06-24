@@ -15,7 +15,7 @@ name.*
 **Usage:**
 
 ```bash
-uv run rrap_dg dhw generate [OPTIONS] CLUSTER_NAME INPUT_LOC OUTPUT_LOC
+uv run rrapdg dhw generate [OPTIONS] CLUSTER_NAME INPUT_LOC OUTPUT_LOC
 ```
 
 **Arguments:**

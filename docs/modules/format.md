@@ -15,7 +15,7 @@ Aligns RME connectivity matrices with canonical UNIQUE IDs.
 
 **Usage**
 ```bash
-uv run rrap_dg format rme-connectivity [OPTIONS]
+uv run rrapdg format rme-connectivity [OPTIONS]
 ```
 
 ### Command: cmip6-downscaled-dhw
@@ -28,7 +28,7 @@ Standardizes CMIP6 statistically downscaled NetCDF DHW files.
 
 **Usage**
 ```bash
-uv run rrap_dg format cmip6-downscaled-dhw [OPTIONS]
+uv run rrapdg format cmip6-downscaled-dhw [OPTIONS]
 ```
 
 ### Command: rme-dhw
@@ -42,7 +42,7 @@ Converts RME DHW CSVs to standardized NetCDF files.
 
 **Usage**
 ```bash
-uv run rrap_dg format rme-dhw [OPTIONS]
+uv run rrapdg format rme-dhw [OPTIONS]
 ```
 
 ### Command: rme-icc
@@ -56,7 +56,7 @@ Processes RME Initial Coral Cover (ICC) into NetCDF using spatial averaging.
 
 **Usage**
 ```bash
-uv run rrap_dg format rme-icc [OPTIONS]
+uv run rrapdg format rme-icc [OPTIONS]
 ```
 
 ### Command: cmip6-consolidated-mcb
@@ -69,7 +69,7 @@ Consolidates raw Marine Cloud Brightening (MCB) NetCDF files into a single multi
 
 **Usage**
 ```bash
-uv run rrap_dg format cmip6-consolidated-mcb [OPTIONS]
+uv run rrapdg format cmip6-consolidated-mcb [OPTIONS]
 ```
 
 **Options:**
@@ -91,7 +91,7 @@ Consolidates raw MCB NetCDFs into 3D NetCDFs with historical data prepended for 
 
 **Usage**
 ```bash
-uv run rrap_dg format cmip6-mcb-prepend [OPTIONS]
+uv run rrapdg format cmip6-mcb-prepend [OPTIONS]
 ```
 
 **Options:**

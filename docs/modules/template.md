@@ -11,7 +11,7 @@ Scaffolds an empty ADRIA Domain directory structure.
 **Usage:**
 
 ```bash
-uv run rrap_dg template generate TEMPLATE_PATH
+uv run rrapdg template generate TEMPLATE_PATH
 ```
 
 ### Command: build
@@ -22,7 +22,7 @@ Sources and file lists are configured via a TOML config file.
 **Usage:**
 
 ```bash
-uv run rrap_dg template build CONFIG_PATH OUTPUT_PATH
+uv run rrapdg template build CONFIG_PATH OUTPUT_PATH
 ```
 
 **Arguments:**
