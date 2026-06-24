@@ -80,3 +80,13 @@ Larval connectivity matrices define the spatial dispersal patterns of coral larv
 | `Moore` | [`102.100.100/486394`](https://hdl.handle.net/102.100.100/486394) |
 | `Davies` | [`102.100.100/486395`](https://hdl.handle.net/102.100.100/486395) |
 | `Lizard` | [`102.100.100/486396`](https://hdl.handle.net/102.100.100/486396) |
+
+---
+
+## Domain Generation Status
+
+The status of domain generation for each cluster is as follows:
+
+*   **Davies Reef**: Fully supported. The domain builds successfully and passes all checks in the domain validator tool.
+*   **Lizard Island**: Partially supported. The domain builds, but content validation fails due to naming and location mismatches between the spatial GeoPackage and the larval connectivity matrices downloaded from the IS store.
+*   **Heron Island**: Unsupported. Heron Island falls outside the spatial extent of the NOAA/MIROC5 data required to generate degree heating week (DHW) projections.
