@@ -10,15 +10,20 @@ using YAXArrays
 include("scenarios.jl")
 include("mortality_regression.jl")
 
-function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::String)
+function generate(
+    rrapdg_dpkg_path::String,
+    rme_dpkg_path::String,
+    output_path::String;
+    cluster_name::Union{String,Nothing}=nothing
+)
     # Get yaxarray of coral mortality for each cyclone category and coral_group
     _mortality_rates = mortality_rates(rrapdg_dpkg_path)
 
     # rrap_dg geodatapackage
-    rrap_gdf::DataFrame = _rrap_gdf(rrapdg_dpkg_path)
+    rrap_gdf::DataFrame = _rrap_gdf(rrapdg_dpkg_path, cluster_name)
 
     # Get YAXArray of cyclone scenarios (in windspeeds) for each reef (from RRAP)
-    scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path)
+    scens::YAXArray = cyclone_scenarios(rrap_gdf, rme_dpkg_path, rrapdg_dpkg_path)
 
     # Fill scens with mortality rate for each coral group
     massives = contains.(scens.species, "massives")
@@ -44,8 +49,10 @@ function generate(rrapdg_dpkg_path::String, rme_dpkg_path::String, output_path::
     return savecube(scens, filename; driver=:netcdf, overwrite=true)
 end
 
-function _rrap_gdf(rrapdg_dpkg_path::String)::DataFrame
-    rrapdg_dpkg_name = splitpath(rrapdg_dpkg_path)[end]
-    cluster_name = split(rrapdg_dpkg_name, '_')[1]
+function _rrap_gdf(rrapdg_dpkg_path::String, cluster_name::Union{String,Nothing}=nothing)::DataFrame
+    if isnothing(cluster_name)
+        rrapdg_dpkg_name = splitpath(rrapdg_dpkg_path)[end]
+        cluster_name = split(rrapdg_dpkg_name, '_')[1]
+    end
     return GDF.read(joinpath(rrapdg_dpkg_path, "spatial", "$(cluster_name).gpkg"))
 end

@@ -67,9 +67,15 @@ def get_closest_data(
         # ignore the time dimension
         box_shape = dhw.shape[1:]
 
-    ind = np.unravel_index(
-        np.argmin(np.abs(lonlats - target_site).sum(axis=1)), box_shape
-    )
+    # Mask out NaN values to ensure we only pick from valid data points
+    # (Checking the first time step is usually sufficient for spatial masks)
+    valid_mask = ~np.isnan(dhw.values.reshape(-1, lonlats.shape[0])[0])
+    
+    # Find index of closest valid data point
+    dist = np.abs(lonlats[valid_mask] - target_site).sum(axis=1)
+    original_idx = np.where(valid_mask)[0][np.argmin(dist)]
+    
+    ind = np.unravel_index(original_idx, box_shape)
 
     # Handle datasets with time dimension
     if len(dhw.shape) > 2:
@@ -95,18 +101,32 @@ def extract_DHW_pattern(recom_files: Sequence[str]):
     tuple[np.array, np.array, np.array, np.array],
         dhw_pattern, mean_dhw_pattern, cluster_lon, cluster_lat
     """
-    n_files = len(recom_files)
     with xr.open_dataset(recom_files[0]) as nc:
-        dhw_pattern = nc["dhw0"].squeeze()
         lons = nc["x_centre"].values.squeeze()
         lats = nc["y_centre"].values.squeeze()
 
-    for rf in recom_files[1:]:
-        with xr.open_dataset(rf) as nc:
-            dhw_pattern += nc["dhw0"].squeeze()
+    # Iterative accumulation to keep memory low (one file at a time)
+    sum_pattern = None
+    count_pattern = None
 
-    dhw_pattern /= n_files  # mean over time
-    mean_dhw_pattern = np.nanmean(dhw_pattern)  # mean of domain
+    for rf in recom_files:
+        with xr.open_dataset(rf) as ds:
+            # Squeeze and load one file at a time
+            data = ds["dhw0"].squeeze().load()
+            valid_mask = ~np.isnan(data)
+
+            if sum_pattern is None:
+                sum_pattern = data.fillna(0.0)
+                count_pattern = valid_mask.astype(float)
+            else:
+                sum_pattern += data.fillna(0.0)
+                count_pattern += valid_mask.astype(float)
+
+    # Compute mean only where we have at least one valid data point
+    dhw_pattern = sum_pattern / count_pattern
+    dhw_pattern = dhw_pattern.where(count_pattern > 0)
+    
+    mean_dhw_pattern = np.nanmean(dhw_pattern.values)  # mean of domain
 
     return dhw_pattern, mean_dhw_pattern, lons, lats
 
@@ -135,9 +155,12 @@ def create_max_DHW(
         - combined max DHW across hist/projected time periods
     """
     # Find max historical DHW by grouping each unique year and getting the max
-    hist_max_DHW = (
-        hist_dhw.groupby("time.year").max(dim=...).to_array().values.squeeze()
-    )
+    # Handle both Dataset and DataArray
+    hist_max_DHW_ds = hist_dhw.groupby("time.year").max(dim=...)
+    if isinstance(hist_max_DHW_ds, xr.Dataset):
+        hist_max_DHW = hist_max_DHW_ds.to_array().values.squeeze()
+    else:
+        hist_max_DHW = hist_max_DHW_ds.values.squeeze()
 
     # Concatenate the data in a single array
     time_yr = np.unique(hist_dhw.time.dt.year.data)
