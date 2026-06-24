@@ -45,7 +45,7 @@ function cyclone_scenarios(rrap_gdf::DataFrame, rme_dpkg_path::String, rrapdg_dp
         Dim{:scenarios}(1:n_scenarios),
     )
 
-    scenarios = YAXArray(axlist, zeros(n_timesteps, n_locations, n_species, n_scenarios))
+    scenarios = YAXArray(axlist, ones(n_timesteps, n_locations, n_species, n_scenarios))
 
     # Each file is a scenario
     for (idx_s, file) in enumerate(scen_files)
